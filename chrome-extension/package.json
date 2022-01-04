@@ -1,0 +1,14 @@
+{
+  "name": "Recipick",
+  "version": "1.0.0",
+  "description": "Pick recipes in websites",
+  "main": "background.js",
+  "author": "Luis Santos luisbsantos93@gmail.com",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@tensorflow/tfjs": "^3.11.0",
+    "bootstrap": "^5.1.3",
+    "compromise": "^13.11.4",
+    "compromise-numbers": "^1.4.0"
+  }
+}

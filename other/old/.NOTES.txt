@@ -1,0 +1,10 @@
+TODO LIST
+- elements & groups
+- presentation of value+unit
+
+
+
+FUTURE:
+page.js:
+    // section without title
+    var no_title_section_regex = /(^[0-9][^\n]+\n)+?(?:^instructions|^method|^directions|^preparation|^procedure|^how to)/gmi

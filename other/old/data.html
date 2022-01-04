@@ -1,0 +1,54 @@
+<!--DOCTYPE html-->
+
+<html>
+    <head>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6" crossorigin="anonymous">
+        <link href="data.css" rel="stylesheet">
+        <script src="data.js" defer></script>
+    </head>
+    
+    <body>
+        <header>
+            <form class="btn-group" id="btn-group" role="group" aria-label="Basic radio toggle button group">
+                <input type="radio" class="btn-check" name="btnradio" id="ings" autocomplete="off" checked>
+                <label class="btn btn-outline-primary" for="ings">Repeated Ingredients</label>
+              
+                <input type="radio" class="btn-check" name="btnradio" id="not_ings" autocomplete="off">
+                <label class="btn btn-outline-primary" for="not_ings">not-Ings</label>
+              
+                <input type="radio" class="btn-check" name="btnradio" id="meths" autocomplete="off">
+                <label class="btn btn-outline-primary" for="meths">Meths</label>
+
+                <input type="radio" class="btn-check" name="btnradio" id="not_meths" autocomplete="off">
+                <label class="btn btn-outline-primary" for="not_meths">not-Meths</label>
+              
+                <input type="radio" class="btn-check" data-page="storage" name="btnradio" id="storage-btn" autocomplete="off">
+                <label class="btn btn-outline-primary" for="storage-btn">Storage</label>
+
+                <input type="radio" class="btn-check" data-page="library" name="btnradio" id="library-btn" autocomplete="off">
+                <label class="btn btn-outline-primary" for="library-btn">Library</label>
+
+                <input type="radio" class="btn-check" data-page="boris" name="btnradio" id="boris-btn" autocomplete="off" checked>
+                <label class="btn btn-outline-primary" for="boris-btn">Boris</label>
+            </form>
+        </header>
+
+        <div id="library" class="page">
+            <ul id="recipes"></ul>
+        </div>
+
+        <div id="storage" class="page">
+            <ul id="sync">
+                <p class="title">Sync Storage</p>
+            </ul>
+            <ul id="local">
+                <p class="title">Local Storage</p>
+            </ul>
+        </div>
+
+        <div id="boris" class="page" style="display: block;">
+            <ul id="boris-list"></ul>
+        </div>
+
+    </body>
+<html>

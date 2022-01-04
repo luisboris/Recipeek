@@ -1,0 +1,186 @@
+html, body {
+    height: 100%;
+    width:100%;
+    overflow: hidden;
+    margin: 0;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+}
+
+.wrapper {
+    height: 100%;
+    width:100%;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    hyphens: auto;
+}
+.row {
+    justify-content: space-between;
+}
+.row>* {
+    flex-shrink: unset;
+}
+
+.col-3 {
+    float: left;
+    height: 100%;
+    overflow: auto;
+    position: relative;
+    font-size: 0.8rem;
+    width: 23%;
+    min-width: 50px;
+    max-width: 300px;
+    color: #0d6efd;
+    background-color: white;
+}
+#left-column {
+    margin-bottom: 50px;
+    background-color: white;
+}
+.column-element {
+    border-color: rgb(129, 129, 129);
+    border: 20px;
+}
+.mb-1 {
+    font-size: 1rem;
+}
+.col-3 button {
+    margin-left: 10px;
+    right: 0;
+    float: right;
+    position:relative;
+}
+
+.col-9 {
+    height: 100%;
+    width: 77%;
+    overflow: auto;
+    box-sizing: border-box;
+    padding-right: 2em; 
+    padding-left: 2em;
+    margin-top: 1em;
+    position: relative;
+}
+
+#upper-fixed {
+    position: sticky;
+    top: 0;
+    background-color: white;
+    z-index: 10;
+    border-bottom-style:inset;
+}
+.col {
+    width: max-content;
+    flex: inherit;
+}
+.head {
+    position: relative;
+}
+.header {
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+}
+#editSwitch, #deleteSwitch {
+    width: 3rem;
+    height:1.5rem;
+}
+#submit-button {
+    margin-right: 15px;
+    float: right;
+}
+.scale {
+    text-align: center;
+}
+.scale-numbers {
+    text-align: justify;
+}
+.scale-numbers::after {
+    content: "";
+    display: inline-block;
+    width: 100%;
+}
+#new-section-select{
+    width: fit-content;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0 !important;
+}
+.form-select {
+    font-size: smaller;
+    width: auto !important;
+}
+#options-info {
+    padding: .2rem 2rem;
+    width: 20%;
+    justify-content: center;;
+}
+.form-control {
+    font-size: smaller;
+}
+.btn {
+    font-size: smaller;
+}
+
+
+.title {
+    font-weight: bold;
+}
+#recipes {
+    margin-left: 35px;
+    margin-bottom: 50px;
+}
+.section-div {
+    margin-bottom: 80px;
+}
+.display-section {
+    max-width: 625px;
+}
+.edit-section {
+    margin-right: 40px;
+}
+.list-title {
+    text-transform: uppercase;
+    text-decoration: double;
+    font-size: 1rem;
+    font-weight: bold !important;
+    margin-bottom:10px;
+}
+li.no-bullets {
+    text-decoration: dashed;
+    text-transform: uppercase;
+    list-style-type: none;
+    margin-left: -1.2rem;
+    margin-bottom: 0.4rem;
+    margin-top: 25px;
+    padding: 0;
+}
+li.method {
+    list-style-type:none;
+    margin-bottom: 10px;
+    margin-left: -10px;
+}
+li, .edit-btn {
+    font-size:0.9rem;
+}
+.edit-whole-page {
+    width: auto;
+    padding: 0 10%;
+}
+.edit-upper-menu {
+    padding-bottom: 30px;
+    width: 110%;
+}
+.edit-block {
+    max-width: max-content;
+}
+.edit-info {
+    max-width: max-content;
+    font-size: smaller;
+}
+.before-x {
+    padding-right: 25px;
+    max-width: inherit;
+}
+.number, .number:focus, .number-unit, .number-unit:focus {
+    border: cadetblue;
+    border-style: solid;
+}

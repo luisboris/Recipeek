@@ -1,0 +1,271 @@
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/normalize
+Skip to main content
+Skip to search
+Skip to select language
+Technologies
+Technologies Overview
+HTML
+CSS
+JavaScript
+Graphics
+HTTP
+APIs
+Browser Extensions
+MathML
+References & Guides
+Learn web development
+Tutorials
+References
+Developer Guides
+Accessibility
+Game development
+more docs
+Feedback
+Send Feedback
+Contribute to MDN
+Report a content issue 🌐
+Report a platform issue 🌐
+Search MDN
+1. Web technology for developers
+2. JavaScript
+3. JavaScript reference
+4. Standard built-in objects
+5. String
+6. String.prototype.normalize()
+Change language
+Table of contents
+Table of contents
+Syntax
+Description
+Examples
+Specifications
+Browser compatibility
+See also
+String.prototype.normalize()
+The `normalize()` method returns the Unicode Normalization Form of the string. 
+Syntax
+normalize()
+normalize(form)
+Parameters
+form` Optional
+One of `"NFC"`, `"NFD"`, `"NFKC"`, or `"NFKD"`, specifying the Unicode Normalization Form. If omitted or `undefined`, `"NFC"` is used. 
+These values have the following meanings:
+NFC"`
+Canonical Decomposition, followed by Canonical Composition.
+NFD"`
+Canonical Decomposition.
+NFKC"`
+Compatibility Decomposition, followed by Canonical Composition.
+NFKD"`
+Compatibility Decomposition.
+Return value
+A string containing the Unicode Normalization Form of the given string.
+Errors thrown
+RangeError`
+A `RangeError` is thrown if `form` isn't one of the values specified above. 
+Description
+Unicode assigns a unique numerical value, called a _code point_ , to each character. For example, the code point for `"A"` is given as U+0041. However, sometimes more than one code point, or sequence of code points, can represent the same abstract character — the character `"ñ"` for example can be represented by either of: 
+The single code point U+00F1.
+The code point for `"n"` (U+006E) followed by the code point for the combining tilde (U+0303). 
+let string1 = '\u00F1';
+let string2 = '\u006E\u0303';
+console.log(string1); // ñ
+console.log(string2); // ñ
+However, since the code points are different, string comparison will not treat them as equal. And since the number of code points in each version is different, they even have different lengths. 
+let string1 = '\u00F1'; // ñ
+let string2 = '\u006E\u0303'; // ñ
+console.log(string1 === string2); // false
+console.log(string1.length); // 1
+console.log(string2.length); // 2
+The `normalize()` method helps solve this problem by converting a string into a normalized form common for all sequences of code points that represent the same characters. There are two main normalization forms, one based on canonical equivalence and the other based on compatibility. 
+Canonical equivalence normalization
+In Unicode, two sequences of code points have canonical equivalence if they represent the same abstract characters, and should always have the same visual appearance and behavior (for example, they should always be sorted in the same way). 
+You can use `normalize()` using the `"NFD"` or `"NFC"` arguments to produce a form of the string that will be the same for all canonically equivalent strings. In the example below we normalize two representations of the character `"ñ"`: 
+let string1 = '\u00F1'; // ñ
+let string2 = '\u006E\u0303'; // ñ
+string1 = string1.normalize('NFD');
+string2 = string2.normalize('NFD');
+console.log(string1 === string2); // true
+console.log(string1.length); // 2
+console.log(string2.length); // 2
+Composed and decomposed forms
+Note that the length of the normalized form under `"NFD"` is `2`. That's because `"NFD"` gives you the decomposed version of the canonical form, in which single code points are split into multiple combining ones. The decomposed canonical form for `"ñ"` is `"\u006E\u0303"`. 
+You can specify `"NFC"` to get the composed canonical form, in which multiple code points are replaced with single code points where possible. The composed canonical form for `"ñ"` is `"\u00F1"`: 
+let string1 = '\u00F1'; // ñ
+let string2 = '\u006E\u0303'; // ñ
+string1 = string1.normalize('NFC');
+string2 = string2.normalize('NFC');
+console.log(string1 === string2); // true
+console.log(string1.length); // 1
+console.log(string2.length); // 1
+console.log(string2.codePointAt(0).toString(16)); // f1
+Compatibility normalization
+In Unicode, two sequences of code points are compatible if they represent the same abstract characters, and should be treated alike in some — but not necessarily all — applications. 
+All canonically equivalent sequences are also compatible, but not vice versa.
+For example:
+the code point U+FB00 represents the ligature `"ﬀ"`. It is compatible with two consecutive U+0066 code points (`"ff"`). 
+the code point U+24B9 represents the symbol `"Ⓓ"`. It is compatible with the U+0044 code point (`"D"`). 
+In some respects (such as sorting) they should be treated as equivalent—and in some (such as visual appearance) they should not, so they are not canonically equivalent. 
+You can use `normalize()` using the `"NFKD"` or `"NFKC"` arguments to produce a form of the string that will be the same for all compatible strings: 
+let string1 = '\uFB00';
+let string2 = '\u0066\u0066';
+console.log(string1); // ﬀ
+console.log(string2); // ff
+console.log(string1 === string2); // false
+console.log(string1.length); // 1
+console.log(string2.length); // 2
+string1 = string1.normalize('NFKD');
+string2 = string2.normalize('NFKD');
+console.log(string1); // ff <- visual appearance changed
+console.log(string2); // ff
+console.log(string1 === string2); // true
+console.log(string1.length); // 2
+console.log(string2.length); // 2
+When applying compatibility normalization it's important to consider what you intend to do with the strings, since the normalized form may not be appropriate for all applications. In the example above the normalization is appropriate for search, because it enables a user to find the string by searching for `"f"`. But it may not be appropriate for display, because the visual representation is different. 
+As with canonical normalization, you can ask for decomposed or composed compatible forms by passing `"NFKD"` or `"NFKC"`, respectively. 
+Examples
+Using `normalize()`
+Initial string
+U+1E9B: LATIN SMALL LETTER LONG S WITH DOT ABOVE
+U+0323: COMBINING DOT BELOW
+let str = '\u1E9B\u0323';
+Canonically-composed form (NFC)
+U+1E9B: LATIN SMALL LETTER LONG S WITH DOT ABOVE
+U+0323: COMBINING DOT BELOW
+str.normalize('NFC'); // '\u1E9B\u0323'
+str.normalize(); // same as above
+Canonically-decomposed form (NFD)
+U+017F: LATIN SMALL LETTER LONG S
+U+0323: COMBINING DOT BELOW
+U+0307: COMBINING DOT ABOVE
+str.normalize('NFD'); // '\u017F\u0323\u0307'
+Compatibly-composed (NFKC)
+U+1E69: LATIN SMALL LETTER S WITH DOT BELOW AND DOT ABOVE
+str.normalize('NFKC'); // '\u1E69'
+Compatibly-decomposed (NFKD)
+U+0073: LATIN SMALL LETTER S
+U+0323: COMBINING DOT BELOW
+U+0307: COMBINING DOT ABOVE
+str.normalize('NFKD'); // '\u0073\u0323\u0307'
+Specifications
+Specification 
+ECMAScript Language Specification (ECMAScript) 
+sec-string.prototype.normalize 
+Browser compatibility
+BCD tables only load in the browser
+See also
+Unicode Standard Annex 15, Unicode Normalization Forms
+Unicode equivalence
+Found a problem with this page?
+Edit on GitHub
+Source on GitHub
+Report a problem with this content on GitHub
+Want to fix the problem yourself? See our Contribution guide.
+Last modified: Jul 20, 2021, by MDN contributors
+Change your languageSelect your preferred language English (US)EspañolFrançais日本語한국어Português (do Brasil)Русский中文 (简体) Change language
+Related Topics
+1. Standard built-in objects
+2. `String`
+3. Properties
+1. `String length`
+4. Methods
+1. `String.prototype[@@iterator]()`
+2. `String.prototype.anchor()`
+3. `String.prototype.at()`
+4. `String.prototype.big()`
+5. `String.prototype.blink()`
+6. `String.prototype.bold()`
+7. `String.prototype.charAt()`
+8. `String.prototype.charCodeAt()`
+9. `String.prototype.codePointAt()`
+10. `String.prototype.concat()`
+11. `String.prototype.endsWith()`
+12. `String.prototype.fixed()`
+13. `String.prototype.fontcolor()`
+14. `String.prototype.fontsize()`
+15. `String.fromCharCode()`
+16. `String.fromCodePoint()`
+17. `String.prototype.includes()`
+18. `String.prototype.indexOf()`
+19. `String.prototype.italics()`
+20. `String.prototype.lastIndexOf()`
+21. `String.prototype.link()`
+22. `String.prototype.localeCompare()`
+23. `String.prototype.match()`
+24. `String.prototype.matchAll()`
+25. _`String.prototype.normalize()`_
+26. `String.prototype.padEnd()`
+27. `String.prototype.padStart()`
+28. `String.raw()`
+29. `String.prototype.repeat()`
+30. `String.prototype.replace()`
+31. `String.prototype.replaceAll()`
+32. `String.prototype.search()`
+33. `String.prototype.slice()`
+34. `String.prototype.small()`
+35. `String.prototype.split()`
+36. `String.prototype.startsWith()`
+37. `String.prototype.strike()`
+38. `String.prototype.sub()`
+39. `String.prototype.substr()`
+40. `String.prototype.substring()`
+41. `String.prototype.sup()`
+42. `String.prototype.toLocaleLowerCase()`
+43. `String.prototype.toLocaleUpperCase()`
+44. `String.prototype.toLowerCase()`
+45. `String.prototype.toSource()`
+46. `String.prototype.toString()`
+47. `String.prototype.toUpperCase()`
+48. `String.prototype.trim()`
+49. `String.prototype.trimEnd()`
+50. `String.prototype.trimStart()`
+51. `String.prototype.valueOf()`
+5. Inheritance:
+6. `Function`
+7. Properties
+1. `Function.arguments`
+2. `Function.caller`
+3. `Function.displayName`
+4. `Function.length`
+5. `Function.name`
+8. Methods
+1. `Function.prototype.apply()`
+2. `Function.prototype.bind()`
+3. `Function.prototype.call()`
+4. `Function.prototype.toSource()`
+5. `Function.prototype.toString()`
+9. `Object`
+10. Properties
+1. `Object.prototype.constructor`
+2. `Object.prototype.__proto__`
+11. Methods
+1. `Object.prototype.__defineGetter__()`
+2. `Object.prototype.__defineSetter__()`
+3. `Object.prototype.__lookupGetter__()`
+4. `Object.prototype.__lookupSetter__()`
+5. `Object.prototype.hasOwnProperty()`
+6. `Object.prototype.isPrototypeOf()`
+7. `Object.prototype.propertyIsEnumerable()`
+8. `Object.setPrototypeOf()`
+9. `Object.prototype.toLocaleString()`
+10. `Object.prototype.toSource()`
+11. `Object.prototype.toString()`
+12. `Object.prototype.valueOf()`
+Web Technologies
+Learn Web Development
+About MDN
+Feedback
+About
+MDN Web Docs Store
+Contact Us
+Firefox
+MDN
+MDN on Twitter
+MDN on Github
+Mozilla
+Mozilla on Twitter
+Mozilla on Instagram
+2005-2021 Mozilla and individual contributors. Content is available under these licenses.
+Terms
+Privacy
+Cookies

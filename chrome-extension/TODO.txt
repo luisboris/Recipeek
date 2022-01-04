@@ -1,0 +1,11 @@
+- until 'pick' button hasn't been clicked, other buttons can't be clicked
+
+- for pages without recipes
+
+- list of saved urls ()
+
+- page title
+
+- other sections (notes, etc.)
+
+- image problem (reset())
