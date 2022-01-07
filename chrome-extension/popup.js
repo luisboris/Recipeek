@@ -33,6 +33,11 @@ chrome.tabs.query({ active: true, currentWindow: true }, async (tab) => {
     for (let radio of document.getElementsByName('toggle')) { 
         radio.addEventListener('change', ()=> handleRadios() );
     }
+
+    // CHECKBOXES
+    for (let box of document.getElementsByName('checkbox')) { 
+        box.addEventListener('change', ()=> handleCheckboxes() );
+    }
 });
 
 
@@ -105,6 +110,13 @@ function handleRadios() {
         let content = radio.value.match(/[^a-zA-Z.]+/)[0] || null
         if (radio.checked) { console.log(message, content); messageScript(tabId, message, content) }
     }
+}
+
+function handleCheckboxes() {
+    for (let box of document.getElementsByName('checkbox')) {
+        let content = box.checked ? 'hide' : 'show'
+        if (box.checked) { console.log(box.value, content); messageScript(tabId, box.value, content) }
+    }  
 }
 
 function createRecipeRadios(length) {

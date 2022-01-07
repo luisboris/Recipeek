@@ -8,6 +8,14 @@
 
 - other sections (notes, etc.)
 
+- SCORE: get the node with highest score, try the same 
+
+- TRY: copy contents into iframe
+
+- OPTIONS PAGE:
+    - show/hide images
+    - show/hide blank elements
+
 ------------------
 https://www.bakingmad.com/recipes/wholemeal-italian-mushroom-pesto-and-artichoke-calzone
 listas ao contrário

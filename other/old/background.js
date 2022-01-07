@@ -11,11 +11,13 @@ chrome.runtime.onInstalled.addListener( () => {
     chrome.storage.sync.set({ dataURL });
 
     // set Database
-    fetchLists("extension", "", "add");
+    //fetchLists("extension", "", "add");
 
     // MAIN LOADING
     queue = [];
     loading_script = false;
+
+    chrome.storage.sync.get(null, (r) => {console.log(r);})
 });
 
 // ICON CLICKED
@@ -50,12 +52,12 @@ chrome.runtime.onMessage.addListener(function listenToEdit(request) {
     if (request.message == "update lists") {
         console.log("update lists")
         var url = request.content[0], lists = request.content[1]
-        fetchLists(url, lists, 'discard');
+        //fetchLists(url, lists, 'discard');
     }
     if (request.message == "update titles") {
         console.log("update")
         var url = request.content[0], lists = request.content[1], section = request.content[2]
-        fetchLists(url, title, 'titles');
+        //fetchLists(url, title, 'titles');
     }
 });  
 
@@ -84,7 +86,7 @@ function main(currentTab) {
                     sendResponse("2 -- BACKGROUND");
                     chrome.storage.local.get("stringsToSend", (strings) => { // { ingredients, not_ingredients, method, not_method, text }
                         chrome.storage.sync.get("currentTab", (data) => {
-                            fetchLists(data.currentTab.url, strings.stringsToSend, 'add');
+                            //fetchLists(data.currentTab.url, strings.stringsToSend, 'add');
                             chrome.storage.sync.set({ lastURL: currentTab.url });
                             chrome.storage.sync.set({ pageList });
                             getMainTab(data.currentTab.index);

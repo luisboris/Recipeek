@@ -3,8 +3,14 @@ import re
 from helpers import *
 
 def main():
-    analyse()
+    unglad()
     
+def unglad():
+    for file in os.listdir('database/unparsed'):
+        if file.startswith('!'):
+            new_name = re.sub('!', '', file, 1)
+            os.rename(f'database/unparsed/{file}', f'database/unparsed/{new_name}')
+
 def analyse():
     ### count how many stopwords in method section
     stopwords = nltk.corpus.stopwords.words("english")

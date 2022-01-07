@@ -56,16 +56,16 @@ main()
 //// MAIN FUNCTIONS
 function main() {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse)=> {
-        // confirm this file is loaded (popup.js)
+        // confirm this file is loaded (POPUP.js)
         if (request.message == 'you there?') { 
             sendResponse({ response: 'yes', length: recipes.length, title: document.title }) 
         }  
-        // wait for results (predict.js)
+        // PROCESS RESULTS when they arrive from PREDICT.js
         if (request.message == 'results') { processResults(request.content) }       
     });
     
 
-    // send innerText to predict.js
+    // send innerText to PREDICT.js
     if (has_results == false) {
         chrome.runtime.sendMessage({ 
             message: "innerText", 
@@ -74,7 +74,7 @@ function main() {
         });
     }
 
-    // remember original display values of each element
+    // remember original display values of each Element
     for (let element of document.body.querySelectorAll('*')) { 
         element.dataset.recipeekOriginalDisplay = element.style.display
     }   
@@ -86,8 +86,7 @@ function main() {
         if (request.message == 'reset') { reset() }
         if (request.message == 'zoom-out') { zoomOut() }
         if (request.message == 'zoom-in') { zoomIn() }
-        //if (request.message == 'imgs-show') { toggleImages('show') }
-        //if (request.message == 'imgs-hide') { toggleImages('hide') }
+        if (request.message == 'imgs') { toggleImages(request.content) }
         if (request.message == 'recipes') { toggleRecipes(request.content) }
 
         // IN-DEVELOPMENT
@@ -166,12 +165,14 @@ function processResults(content) {
 function findListNode(results) {   
     /*
     Search document and find the NODE with the highest correspondence with the RESULTS for a given LIST. 
+    Avoid Elements that are not visible (no offsetHeight)
     Return a Node Object or null if there is no correspondence
     */
     let best_match = [null, 0]
     
     for (let element of document.body.querySelectorAll('*')) {
-        if (element.innerText == undefined) { continue } 
+        if (element.innerText == undefined || element.offsetHeight == 0) { continue } 
+
         score = getScore(results, correctLines(element.innerText))
         if (score > best_match[1]) { best_match = [element, score] }
     }
@@ -480,12 +481,13 @@ function singleFocus(recipes) {
         else { element.style.display = element.dataset.recipeekOriginalDisplay }
     }
 
-    // IN DEVELOPMENT - show score
-    let lines = []
-    for (let node of display.focused) {
-        lines.push(...correctLines(node.text))
-    }
-    console.log(lines, overallScore(lines))
+    // IN DEVELOPMENT - 
+        //show score
+        let lines = []
+        for (let node of display.focused) {
+            lines.push(...correctLines(node.text))
+        }
+        console.log(lines, overallScore(lines))
 }
 
 function reset() {

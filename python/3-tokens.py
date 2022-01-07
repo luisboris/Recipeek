@@ -16,10 +16,10 @@ def main():
     # get new tokens from unparsed files
     files_parsed = []
     for file in os.listdir('database/unparsed'):
-        if file.endswith("Ingredients.txt") and file.startswith('!'):
+        if file.endswith("Ingredients.txt"):
             update_tokens(f'database/unparsed/{file}', ing_tokens)
             files_parsed.append(file)
-        if file.endswith("Method.txt") and file.startswith('!'):
+        if file.endswith("Method.txt"):
             update_tokens(f'database/unparsed/{file}', meth_tokens)
             files_parsed.append(file)
     
@@ -28,11 +28,6 @@ def main():
 
     # update token files
     update_csv(ing_tokens, meth_tokens)
-    
-    # unflag unparsed files
-    for file in files_parsed:
-        new_name = file.replace('!', '')
-        os.rename(f'database/unparsed/{file}', f'database/unparsed/{new_name}')  
     
     # move files parsed to parsed folder
     move()
@@ -92,7 +87,7 @@ def tokenize_feedback(ing_tokens, meth_tokens):
     update_tokens('database/feedback/unparsed/ing_mistakes.txt', ing_tokens, score=-1)
     update_tokens('database/feedback/unparsed/meth_mistakes.txt', meth_tokens, score=-1)
     
-    # transfer parsed lines and empty unparsed files
+    # transfer parsed lines and empty unparsed files from FEEDBACK
     for file in os.listdir('database/feedback/unparsed'):
         with open(f'database/feedback/unparsed/{file}', 'r', encoding='utf-8') as r:
             lines = r.read()
