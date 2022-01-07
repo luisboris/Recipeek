@@ -56,9 +56,6 @@ def update_tokens(file, tokens, score=1):
                 tokens[word] = tokens[word] + score
             else:
                 tokens[word] = score
-            # delete tokens with no score
-            if tokens[word] < 1:
-                tokens.pop(word)
 
 def update_csv(ing_tokens, meth_tokens):
     """

@@ -1,18 +1,13 @@
 chrome.runtime.onInstalled.addListener( () => {
     console.log("installed!");
-    
-    // set URL for Extension Page
-    const mainURL = chrome.runtime.getURL("main.html");   
-    chrome.storage.local.set({ mainURL });
+
+	chrome.storage.local.get(null, (content)=> {
+		console.log(content);
+	});
 
     setTokens()
 });
 
-
-// print all items in storage
-chrome.storage.local.get(null, (items)=> {
-    console.log(items);
-});
 
 function setTokens() {
     chrome.storage.local.set({ tokens: {

@@ -1,5 +1,5 @@
 {
-    "name": "Recipick_TensorFlow",
+    "name": "Recipick",
     "description": "Pick the recipe from a website",
     "version": "1.0.0",
     "permissions": [
@@ -21,10 +21,6 @@
         "page": "background.html",
         "persistent": false
     },
-    "content_scripts": [{
-        "js": [ "bootstrap.bundle.min.js" ],
-        "matches": [ "http://*/*", "https://*/*"]
-    }],
     "browser_action": {
         "default_popup": "popup.html",
         "default_title": "Recipick",

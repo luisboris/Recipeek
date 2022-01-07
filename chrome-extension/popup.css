@@ -1,5 +1,5 @@
 body {
-    min-width: 300px;
+    min-width: 400px;
     height: 500px;
     margin: 2px black;
 }
@@ -10,12 +10,17 @@ body {
     height: 100px;
 }
 
-.info {
-    height: 40px;
+.infoo {
+    height: 60px;
     font-size: x-large;
     text-align: center;
-    margin: 20px black;
 }
+
+.feedback {
+    padding: 20px;
+    border: 2px solid black;
+}
+
 
 .hide {
     display: none;

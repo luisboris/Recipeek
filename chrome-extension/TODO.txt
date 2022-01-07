@@ -1,6 +1,6 @@
 - until 'pick' button hasn't been clicked, other buttons can't be clicked
 
-- for pages without recipes
+- pages without recipes
 
 - list of saved urls ()
 
@@ -8,4 +8,6 @@
 
 - other sections (notes, etc.)
 
-- image problem (reset())
+------------------
+https://www.bakingmad.com/recipes/wholemeal-italian-mushroom-pesto-and-artichoke-calzone
+listas ao contrário

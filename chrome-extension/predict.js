@@ -8,21 +8,22 @@ const NUMBER_RE = new RegExp(NUMBER_TEMPLATE, 'g')
 const STOPWORDS = ['i','me','my','myself','we','our','ours','ourselves','you','your','yours','yourself','yourselves','he','him','his','himself','she','her','hers','herself','it','its','itself','they','them','their','theirs','themselves','what','which','who','whom','this','that','these','those','am','is','are','was','were','be','been','being','have','has','had','having','do','does','did','doing','a','an','the','and','but','if','or','because','as','until','while','of','at','by','for','with','about','against','between','into','through','during','before','after','above','below','to','from','up','down','in','out','on','off','over','under','again','further','then','once','here','there','when','where','why','how','all','any','both','each','few','more','most','other','some','such','no','nor','not','only','own','same','so','than','too','very','s','t','can','will','just','don','should','now']
 const PUNCTUATION = /[!"#$%&\'()*+,\\\-.:;<=>?@[\]\^_`{\|}~]/g
 
-const PATTERN_N = `^${NUMBER_TEMPLATE} ?$`                            // number alone
-const PATTERN_N_U = `^${NUMBER_TEMPLATE}.{0,2}(${UNITS})[^a-zA-Z]*$`  // number+unit alone
-const TITLE_PATTERN = '^[a-zA-Z]+\W?$'
+const PATTERN_N = `^${NUMBER_TEMPLATE} ?$`                              // number alone
+const PATTERN_N_U = `^${NUMBER_TEMPLATE}.{0,2}(${UNITS})[^a-zA-Z]*$`    // number+unit alone
+const TITLE_PATTERN = '^[a-zA-Z]+\W?$'                                  // line with just 1 word
 const ING_PATTERNS = [
-    `^${NUMBER_TEMPLATE}.?(${UNITS})[^a-zA-Z0-9]{1,2}`, 
-    `^${NUMBER_TEMPLATE} .+`
+    `^${NUMBER_TEMPLATE}.?(${UNITS})[^a-zA-Z0-9]{1,2}`,                 // number + unit + text
+    `^${NUMBER_TEMPLATE} .+`                                            // number + text
 ]
 const METH_PATTERNS = [ 
-    '^[0-9]+\W{1,3}\w+'
+    '^[0-9]+\W{1,3}\w+'                                                 // ordered list numeration
 ]
 
 const ING_SAVED_MODEL = 'models/saved_model/ing_lines_binary/model.json';
 const METH_SAVED_MODEL = 'models/saved_model/meth_lines_binary/model.json';
 
 
+// wait for message from PAGE.js
 chrome.runtime.onMessage.addListener( async (request)=> {
     if (request.message == "innerText") {
         chrome.storage.local.get('tokens', async (lib) => { 
@@ -32,71 +33,66 @@ chrome.runtime.onMessage.addListener( async (request)=> {
 
             // LINES
             let text = request.content
-            let lines = getLines(text)[1]
+            let lines = correctLines(text)
 
             // VECTORS
             let ing_vectors = vectorize(lines, ing_tokens)
             let meth_vectors = vectorize(lines, meth_tokens)
-            for (let i in lines) {
-              //  console.log(lines[i]); console.log(ing_vectors[i]); console.log(meth_vectors[i])
-            }
             
             // PREDICTIONS
             let ing_prediction = await predict(ing_vectors, ING_SAVED_MODEL)
             let meth_prediction = await predict(meth_vectors, METH_SAVED_MODEL)
             let ing_results = [], meth_results = []
-            for (let i = 0; i < lines.length; i++) {
-                if (ing_prediction[i][0] < ing_prediction[i][1]) { 
-                    ing_results.push(lines[i]); //console.log(lines[i], ing_vectors[i]);  
-                }
-                if (meth_prediction[i][0] < meth_prediction[i][1]) { 
-                    meth_results.push(lines[i]); //console.log(lines[i], meth_vectors[i]) 
-                }
+            for (let i = 0; i < lines.length; i++) {    // save lines with positive predictions
+                if (ing_prediction[i][0] < ing_prediction[i][1]) { ing_results.push(lines[i]) }
+                if (meth_prediction[i][0] < meth_prediction[i][1]) { meth_results.push(lines[i]) }
             }
             let results = [ing_results, meth_results]
             
             // SAVE RESULTS & CALL CONTENT SCRIPT
-            chrome.tabs.query({ url: request.url }, async (tabs) => {
-                if (tabs[0] == undefined) {    // invalid URL
-                    if (request.url.includes('/#')) { 
-                        let valid_url = correctURL(request.url)
-                        chrome.tabs.query({ url: valid_url }, async (tabs2) => {
-                            sendResults(valid_url, results, tabs2[0].id)
-                        });
-                    }
-                    else { console.log('url error');//chrome.runtime.sendMessage(tabId, { message: "problem with URL"}) 
-                    }
-                }
-                else { sendResults(request.url, results, tabs[0].id) }
-            });
+            sendResults(results, request.url)
         }); 
     }
 });
 
 
-//// FUNCTIONS
-function sendResults(url, results, tabId) {
-    chrome.tabs.sendMessage(tabId, { message: "results", content: results })
+//// SECONDARY FUNCTIONS
+function sendResults(results, url) {
+    /*
+    Send message to PAGE.js with results after checking for a valid URL
+    */
+    chrome.tabs.query({ url }, async (tabs) => {
+        if (tabs[0] == undefined) {    // invalid URL
+            if (url.includes('/#')) { 
+                let valid_url = correctURL(url)
+                chrome.tabs.query({ url: valid_url }, async (tabs2) => {
+                    chrome.tabs.sendMessage(tabs2[0].id, { message: "results", content: results })
+                });
+            }
+            else { chrome.runtime.sendMessage(tabId, { message: "problem with URL"}) }
+        }
+        else { chrome.tabs.sendMessage(tabs[0].id, { message: "results", content: results }) }
+    });
 }
 
 function correctURL(url) {
+    /** Delete hashmarks */
     return url.includes('/#') ? url.replace(/\/#.+/, '/') : url
 }
 
-//// TEXT PARSING FUNCTIONS
-function getLines(text) {
-    let original_lines = text.split('\n')
-    let corrected_lines = correctLines(text)
-    return [original_lines, corrected_lines]
-}
-
 function correctLines(text) {
+     /*
+    Divide the text in lines and delete empty lines, doubles spaces and symbols at the beggining of line
+    Search for list entries which are broken in different lines (e.g: "2\nlemons", "1 cup\nwater")
+    and concatenate them in a single line.
+    Return an array with corrected lines
+    */
     let lines = text.toLowerCase().replaceAll('\n\n', '\n').replaceAll('  ', ' ').replaceAll(/^[\W]+/gm, '').split('\n')
     let corrected_lines = []
     for (let i = 0; i < lines.length; i++) {
         // pattern broken in 2 lines: number alone || number+unit alone
         if (lines[i].search(PATTERN_N) != -1 || lines[i].search(PATTERN_N_U) != -1) {
-            // ensure space between concatenated lines
+            // ensure a single space between concatenated lines
             let two = `${lines[i]} ${lines[i+1]}`.replaceAll('  ', ' ')
             corrected_lines.push(two)
             i++
@@ -109,14 +105,12 @@ function correctLines(text) {
 
 //// MACHINE LEARNING FUNCTIONS
 function vectorize(lines, tokens) {
-    /* create a vector for each sentence
-    [length, score, neighbor_scores(3 before + 3 after), [patterns]] */
+    /* 
+    Create a vector for each sentence
+    [length, score, neighbor_scores(3 before + 3 after), [patterns]] 
+    */
     let words = lines.map(line=> getTokens(line))
     let scores = words.map(ww=> getScore(ww, tokens))
-
-    for (let i in lines) {
-       // console.log(scores[i], lines[i], words[i])
-    }
 
     let vectors = []
     let padded_scores = [0, 0, 0, ...scores, 0, 0, 0]
@@ -147,19 +141,21 @@ function getPatterns(line) {
 }
 
 function getTokens(line) {
+    /*
+    Get every word in line, remove punctuation and filter stopwords and numbers
+    */
     let words = nlp.tokenize(line).terms().json().map(o=> o.text);
     let numbers = [...line.matchAll(NUMBER_RE, 'g')].map(m=> m[0])
     
-    // remove punctuation
     words.forEach((word, i, array)=> { array[i] = word.replaceAll(PUNCTUATION, '') })
     
-    // filter stopwords and numbers
-    let tokens = words.filter((w) => { return !numbers.includes(w) && !STOPWORDS.includes(w)})
-    
-    return tokens
+    return words.filter((w) => { return !numbers.includes(w) && !STOPWORDS.includes(w)})
 }
 
 function getScore(words, tokens) {
+    /*
+    Get the score for a line that is the sum of every token's score divided by the number of words
+    */
     if (words.length == 0) { return 0 }
     let score = 0
     for (let word of words) {
@@ -167,17 +163,18 @@ function getScore(words, tokens) {
             score += tokens[word]
         }
     }
-    //console.log(score, words)
     return score / words.length
 }
 
 function normalize(vectors) {
-    // get maximum value of each column
+    /*
+    Get maximum value of each column
+    Divide values by maximum value, except for binary values
+    */
     let maxs = Array(vectors[0].length)
     for (let i = 0; i < vectors[0].length; i++) {
         maxs[i] = Math.max(...vectors.map(v=> v[i]))
     }
-    // divide float values by maximum value, except for first value(length)
     for (let vector of vectors) {
         for (let i = 0; i < vector.length; i++) {
             if (maxs[i] == 1 || maxs[i] == 0) { continue }
@@ -187,15 +184,14 @@ function normalize(vectors) {
     return vectors
 }
 
-async function predict(vectors, model) {
-    let input = getTensor(vectors)
-    const model1 = await tf.loadGraphModel(model)
-    const exec = await model1.executeAsync(input)
+async function predict(vectors, model_path) {
+    /*
+    Execute previously trained model 
+    */
+    let input = tf.tensor3d([...vectors.flat()], [vectors.length, vectors[0].length, 1])
+    
+    const model = await tf.loadGraphModel(model_path)
+    const exec = await model.executeAsync(input)
+    
     return exec.arraySync()
-};
-
-function getTensor(vectors) {
-    var array = [...vectors.flat()]
-    var tensor = tf.tensor3d(array, [vectors.length, vectors[0].length, 1])
-    return tensor
 }

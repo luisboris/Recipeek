@@ -10,23 +10,23 @@ const PATTERN_N_U = `^${NUMBER_RE}.{0,2}(${UNIT_RE})[^a-zA-Z]*$`  // number+unit
 
 // CLASSES
 class Node {
-    constructor(node, score=null) {
-        this.node = node;
+    constructor(element, score=null) {
+        this.element = element;
         this.score = score;
-        this.text = this.node.innerText;
+        this.text = this.element.innerText;
         this.lines = this.text.split('\n');
-        this.position = nodePosition(this.node).position
-        this.branch = getBranch(this.node).branch;
-        this.trunk = getBranch(this.node).trunk;
-        this.parent = this.node.parentNode;
-        this.children = this.node.children;
+        this.position = elementPosition(this.element).position
+        this.branch = getBranch(this.element).branch;
+        this.trunk = getBranch(this.element).trunk;
+        this.parent = this.element.parentNode;
+        this.children = this.element.children;
     }
 }
 class Recipe {
     constructor(ingredients, method) {
-        this.ingredients = ingredients;
-        this.method = method;
-        this.node = findCommonAncestor(this.ingredients, this.method)
+        this.ing = ingredients;
+        this.meth = method;
+        this.Node = findCommonAncestor(this.ing, this.meth)
     }
 }
 
@@ -37,17 +37,18 @@ let results = {}                            // lines identified by predict.js
 const body_node = new Node(document.body)
 let nodes = []                              // all Node Objects
 let recipes = []                            // all Recipe Objects
+let errors = {                              // false positives and negatives
+    'ing': { 'mistakes': [], 'misses': [] }, 
+    'meth': { 'mistakes': [], 'misses': [] } 
+}      
 let display = {
-    'original': {},                         // original display values of each node
-    'images': {},
+    'body': document.body.innerHTML,        // body of page, without modifications
     'focused': [body_node],                 // current NODES in display
     'recipes': []                           // current RECIPES in display
 }
-for (let element of document.body.querySelectorAll('*')) { 
-    if (element.tagName == 'IMG') { display.images = element.style.display } 
-    else { display.original[element] = element.style.display }
-    
-}
+
+// IN DEVELOPMENT
+let focus_type = '1'
 
 main()
 
@@ -56,10 +57,13 @@ main()
 function main() {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse)=> {
         // confirm this file is loaded (popup.js)
-        if (request.message == 'you there?') { sendResponse({ response: 'yes', length: recipes.length }) }  
+        if (request.message == 'you there?') { 
+            sendResponse({ response: 'yes', length: recipes.length, title: document.title }) 
+        }  
         // wait for results (predict.js)
         if (request.message == 'results') { processResults(request.content) }       
     });
+    
 
     // send innerText to predict.js
     if (has_results == false) {
@@ -70,21 +74,29 @@ function main() {
         });
     }
 
+    // remember original display values of each element
+    for (let element of document.body.querySelectorAll('*')) { 
+        element.dataset.recipeekOriginalDisplay = element.style.display
+    }   
+
     // manage BUTTONS from POPUP
     chrome.runtime.onMessage.addListener((request)=> {
         if (has_results == false) { return }
 
-        if (request.message == 'pick') { singleFocus(recipes) }
         if (request.message == 'reset') { reset() }
         if (request.message == 'zoom-out') { zoomOut() }
         if (request.message == 'zoom-in') { zoomIn() }
-        if (request.message == 'imgs-show') { toggleImages('show') }
-        if (request.message == 'imgs-hide') { toggleImages('hide') }
+        //if (request.message == 'imgs-show') { toggleImages('show') }
+        //if (request.message == 'imgs-hide') { toggleImages('hide') }
         if (request.message == 'recipes') { toggleRecipes(request.content) }
 
         // IN-DEVELOPMENT
         if (request.message == 'save') { saveErrors() }
-        if (request.message == 'feedback') { displayFeedback() }
+        if (request.message == 'feedback') { toggleRecipes(request.content) }
+        if (request.message == 'feedback.ing') { displayList(request.content, 'ing') }
+        if (request.message == 'feedback.meth') { displayList(request.content, 'meth') }
+        if (request.message == 'feedback-show') { displayFeedback() }
+        if (request.message == 'focus') { focus_type = request.content }
     });
 }
 
@@ -97,6 +109,14 @@ function loading() {
 }
 
 function processResults(content) {
+    /*
+    1. Search for a match between RESULTS and page content
+    2. Find an Element for each LIST (Ingredients and Method) based on a correspondence score
+    3. Find is there are multiple RECIPES
+    4. Store these MATCHES in global variables
+    5. Check mismatches between RESULTS and MATCHES (lines that were wrongly predicted)
+    6. Send message to POPUP
+    */
     if (results == undefined) { messagePopup('results undefined', true) }
 
     results = {'ing': content[0], 'meth': content[1]}
@@ -116,53 +136,37 @@ function processResults(content) {
     // SORT NODES
     nodes = [...ing_nodes[0], ...meth_nodes[0]]
     nodes = nodes.filter((value)=> { return value != null });   // delete null values
-    nodes.sort((a,b)=> { return a.position - b.position })      // sort by order
+    nodes.sort((a,b)=> { return a.position - b.position })      // sort by order they appear in document
 
-    console.log('NODES:::::::::::::::::::::::::::::::::::::', nodes)
+    console.log('NODES:::::::::::::::::::::::::::::::::::::'); console.log(nodes);
 
-    // store each RECIPE NODE
+    // STORE EACH RECIPE NODE (multiple RECIPES if all have pairs)
     if (ing_nodes[0].length == meth_nodes[0].length) {
         for (let i = 0; i < nodes.length; i += 2) {
-            let recipe = new Recipe(nodes[i], nodes[i+1])
-            recipes.push(recipe)
+            recipes.push(new Recipe(nodes[i], nodes[i+1]))
         }
     }
     else { 
-        let recipe = new Recipe(ing_node, meth_node)
-        recipes.push(recipe)
+        recipes.push(new Recipe(ing_node, meth_node))
     }
-
 
     console.log('SECOND MATCH:::::::::::::::::::::::::::::::');  console.log(ing_nodes[0]); console.log(meth_nodes[0])
-    console.log('RECIPES:', recipes);
+    console.log('RECIPES:'); console.log(recipes);
 
-    // GET MISTAKES
-    /*
-    analyseResults(results, recipe_node)
-    let errors = {
-        ing_mistakes: analyseResults(results.ing, ing_node[0])[0],
-        ing_misses: analyseResults(results.ing, ing_node[0])[1],
-        meth_mistakes: analyseResults(results.meth, meth_node[0])[0],
-        meth_misses: analyseResults(results.meth, meth_node[0])[1],
-    }
-    console.log(errors)
-    */
+    // GET ERRORS
+    getErrors()
+    
+    console.log('ERRORS:', errors)
     
     has_results = true
     messagePopup('results :)', false, length=recipes.length)
-    
-    // send message to popup.js
-    function messagePopup(message, error=false, length=0) {
-        chrome.runtime.sendMessage({ message, length });
-        if (error) { throw new Error(message) }
-    }
+
 }
 
 function findListNode(results) {   
     /*
-    Search document and find the NODE with the highest correspondence 
-    with the RESULTS for a given LIST. 
-    Return a Node object or null if there is no correspondence
+    Search document and find the NODE with the highest correspondence with the RESULTS for a given LIST. 
+    Return a Node Object or null if there is no correspondence
     */
     let best_match = [null, 0]
     
@@ -179,12 +183,12 @@ function findListNode(results) {
 
 function multipleLists(results, node) {
     /* 
-    Check if the page has multiple lists of the same type (ingredients or method). 
+    Check if the page has multiple LISTS of the same type (Ingredients or Method). 
     Search is based on the pattern "TITLE + LIST ELEMENTS".
     1st ALTERNATIVE: for every repeated line in LIST, search for pattern 
     (where TITLE == line and LIST ELEMENTS == every line until next repeated line)
-    2nd ALTERNATIVE: search for sections in the doument with the same first line as the single match.
-    Combine the score of multiple nodes found to see if it's higher than the single match.
+    2nd ALTERNATIVE: search for sections in the document with the same first line as the single match.
+    Combine the score of multiple Nodes found to see if it's higher than the single match.
     Return an array containing an array of NODES or the original NODE, whichever has the highest score,
     and the TOTAL SCORE
     */
@@ -206,7 +210,7 @@ function multipleLists(results, node) {
         }
         repeated_lists.push(temp)
 
-        // check score of nodes combined
+        // check score of Nodes combined
         let nodes = []
         let lines = []
         for (let list of repeated_lists) {
@@ -250,27 +254,40 @@ function multipleLists(results, node) {
     return best_combo
 }
 
-function analyseResults(results, node) {
-    let node_lines = correctLines(node.innerText)
-    let mistakes = [], misses = []
-    // MISTAKES MADE BY PREDICTION
-    for (let line of results.flat()) {
-        if (!node_lines.includes(line)) {
-            mistakes.push(line)
+function getErrors() {
+    /*
+    Check for mismatches between RESULTS and the corresponding MATCH (Node) found for each type (Ingredients and Method)
+    MISTAKES: false positives
+    MISSED: false negatives
+    */
+    let lines = { 
+        'ing': recipes.map((rec)=> { return correctLines(rec.ing.text) }).flat(),
+        'meth': recipes.map((rec)=> { return correctLines(rec.meth.text) }).flat()
+    }
+    
+    for (let list of ['ing', 'meth']) {
+        // MISTAKES
+        for (let line of results[list].flat()) {
+            if (!lines[list].includes(line)) {
+                errors[list]['mistakes'].push(line)
+            }
+        }
+        // MISSES
+        for (let line of lines[list]) {
+            if (!results[list].flat().includes(line)) {
+                errors[list]['misses'].push(line)
+            }
         }
     }
-    // LINES MISSED BY PREDICTION
-    for (let line of node_lines) {
-        if (!results.flat().includes(line)) {
-            misses.push(line)
-        }
-    }
-    return [mistakes, misses]
 }
 
 
 //// SECONDARY FUNCTIONS
 function getScore(results, lines) {
+    /*
+    Given a set of PREDICTIONS (results) and the LINES of a document Element,
+    return the proportion between MATCHES and ERRORS (false positives and negatives)
+    */
     let copy = [...results]
     let matched = 0
     for (let line of lines) {
@@ -280,18 +297,22 @@ function getScore(results, lines) {
             matched++ 
         }
     }
-    // number of lines not in common
-    let unmatched = results.length - matched + lines.length - matched
+    
+    let errors = results.length - matched + lines.length - matched
 
-    return matched / unmatched
+    return matched / errors
 }
 
 function findCommonAncestor(...nodes) {
+    /*
+    For each of the Nodes, iterate through their ancestors to find the closest one they all have in common
+    */
     if (nodes.length == 1) { return nodes }
+    
     let branch = nodes[0].branch
     let ancestor = nodes[0]
     for (let i = 1; i < nodes.length; i++) {
-        let temp = nodes[i].node
+        let temp = nodes[i].element
         while (!branch.includes(temp) && temp != document.body) {
             temp = temp.parentNode
         }
@@ -300,49 +321,48 @@ function findCommonAncestor(...nodes) {
     return ancestor
 }
 
-function getBranch(node) { 
+function getBranch(element) { 
     /*
-    Given a node, return an array of its ancestors (TRUNK)
-    and an array with the complete BRANCH (from ancestor to descendants)
-    both of them in descending order
+    Given an HTML Element, return an array of its ancestors (TRUNK) and an array with the complete BRANCH 
+    (from ancestor to descendants), both of them in descending order.
     */
-    let trunk = [node]                                             
-    let temp_node = node
-    while (temp_node != document.documentElement) {
-        trunk.unshift(temp_node);
-        temp_node = temp_node.parentNode;
+    let trunk = [element]                                             
+    let temp = element
+    while (temp != document.documentElement) {
+        trunk.unshift(temp);
+        temp = temp.parentNode;
     }
-    let branch = trunk.concat(...node.querySelectorAll('*'))  
+    let branch = trunk.concat(...element.querySelectorAll('*'))  
     return { branch: branch, trunk: trunk }
 }
 
-function deepestNode(node) {
+function deepestNode(element) {
     /*
-    Given a node, return the deepest node (furthest away from document.documentElement) 
-    wich has the same innerText
+    Given an HTML Element, return the deepest Element (furthest away from document.documentElement) with the same innerText
     */
-    if (node == null) { return }
-    let children = Array.from(node.children)
-    while (children.some(node=> { node.innerText == node.innerText })) {
-        node = children.find(node=> { node.innerText == node.innerText })
-        children = Array.from(node.children)
+    if (element == null) { return }
+
+    let children = Array.from(element.children)
+    while (children.some(element=> { element.innerText == element.innerText })) {
+        element = children.find(element=> { element.innerText == element.innerText })
+        children = Array.from(element.children)
     }
-    return node
+    return element
 }
 
-function nodePosition(node) {
+function elementPosition(element) {
     /*
     Get the deepness (distance from document.documentElement) and 
-    vertical position (distance from page top) of a given node
+    vertical position (distance from page top) of a given HTML Element
     */
     let position = 0
     let deepness = 0
-    for (element of document.body.querySelectorAll("*")) {
-        if (element == node) { break }
+    for (el of document.body.querySelectorAll("*")) {
+        if (el == element) { break }
         position++
     }
-    while (node != document.documentElement) {
-        node = node.parentNode
+    while (element != document.documentElement) {
+        element = element.parentNode
         deepness++
     }
     return { position, deepness }
@@ -387,21 +407,28 @@ function difference(array1, array2) {
     return new_array
 }
 
+function messagePopup(message, error=false, length=0) {
+    chrome.runtime.sendMessage({ message, length });
+    if (error) { throw new Error(message) }
+}
+
 ////// ACTIONS
 function multiFocus(recipes) {
     /*
-    Given an array of RECIPES, hide all elements outside of each BRANCH of INGREDIENT NODE and METHOD NODE
+    Given an array of RECIPES, get the BRANCHES of each of their LISTS BRANCH and hide all elements outside of them
+    Update DISPLAY object
     */
     let branches = []
     display.focused = []
+
     for (let recipe of recipes) {
-        branches.push(...recipe.ingredients.branch, ...recipe.method.branch)
-        display.focused.push(recipe.ingredients, recipe.method)
+        branches.push(...recipe.ing.branch, ...recipe.meth.branch)
+        display.focused.push(recipe.ing, recipe.meth)
     }
     for (let element of document.body.querySelectorAll('*')) {
         if (!branches.includes(element)) { element.style.display = 'none' }
+        else { element.style.display = element.dataset.recipeekOriginalDisplay }
     }
-    console.log(branches, display.focused)
 }
 
 function singleFocus(recipes) {
@@ -409,91 +436,85 @@ function singleFocus(recipes) {
     Given an array of RECIPES, get each of their BRANCHES and hide all elements outside of them
     Update DISPLAY object
     */
+    // IN DEVELOPMENT ...
+    if (focus_type == '2') { multiFocus(recipes); return }
+    // ...
+
     let branches = []
     display.focused = []
-    console.log(branches, recipes);
+    
     for (let recipe of recipes) {
-        branches.push(...recipe.node.branch)
-        display.focused.push(recipe.node)
+        branches.push(...recipe.Node.branch)
+        display.focused.push(recipe.Node)
     }
     for (let element of document.body.querySelectorAll('*')) {
         if (!branches.includes(element)) { element.style.display = 'none' }
-        else { element.style.display = display.original[element] }
+        else { element.style.display = element.dataset.recipeekOriginalDisplay }
     }
 }
 
 function reset() {
     /*
-    Send a message to POPUP to reload the tab and uncheck radio
+    Reassign original display values
     */
-    chrome.runtime.sendMessage({ message: "reset" });
-    // uncheck radio in POPUP
-    // reassign original display values 
-    /* for (let element of document.body.querySelectorAll('*')) {
-        if (element.tagName == 'IMG') { element.style.display = display.images[element] }
-        else { element.style.display = display.original[element] }
+    for (let element of document.body.querySelectorAll('*')) { 
+        element.style.display = element.dataset.recipeekOriginalDisplay;
     }
-    display.focused = [body_node] */
+    display.recipes = []
+    display.focused = [body_node]
 }
 
 function zoomIn() {
-    // no RECIPE in display: do as if all of them in display
+    /*
+    Search for descendant Elements of the current Elements in display (focused Node) that are ancestors of the current 
+    RECIPE selected and select the closest one that will display a differente content.
+    A) If no RECIPES selected, select all of them (the radio button "Peek Recipes"/"Peek All") and recall this function
+    B) If one RECIPE selected, hide all other descendants that do not belong in this RECIPE BRANCH
+    C) If all RECIPES selected, do the same as in B) for each RECIPE, but hide thes ones that do not belong in 
+    ANY of any of all the RECIPE BRANCHES & belongs in the corresponding RECIPE BRANCH
+    Do not zoom beyond RECIPE Node Elements.
+    */
+    // A
     if (display.recipes.length == 0) { 
         toggleRecipes(-1, Focus=false);
         zoomIn();
-        return
     }
-
-    console.log('ZZOM:', display.recipes, display.focused);
-
-    // one RECIPE in display
-    if (display.recipes.length == 1) {
+    // B
+    else if (display.recipes.length == 1) {
         let recipe = display.recipes[0]
         let focused = display.focused[0]
 
-        // do not zoom in beyond RECIPE Node
-        if (focused.node === recipe.node.node) { return }
+        if (focused.element === recipe.Node.element) { return }
 
-        let branch = recipe.node.branch
+        let branch = recipe.Node.branch
         let temp = focused
-        i = 0
-        // search for descendat with different innerText; do not focus Recipe Node children
-        while (temp.text == focused.text && temp.node != recipe.node.node) {
-            // hide all descendants not in branch
+        while (temp.text == focused.text && temp.element != recipe.Node.element) {
             for (let element of temp.children) {
                 if (!branch.includes(element)) { element.style.display = 'none' }
                 else { temp = new Node(element) }
             }
-            i++
-            if (i==10) {break}
         }
         display.focused = [temp]
     }
-    // all RECIPES in display
+    // C
     else {
-        let branches = recipes.map(recipe=> { return recipe.node.branch }).flat()
+        let branches = recipes.map(recipe=> { return recipe.Node.branch }).flat()
         let new_focused = []
         
         for (let focused of display.focused) {
-            // do not zoom in beyond a RECIPE Node
-            if (nodes.includes(focused.node)) { break }
+
+            if (nodes.includes(focused.element)) { break }
             
             // find the RECIPE which has the current FOCUSED NODE in its branch
-            let recipe = recipes.filter((v)=> { return v.node.branch.includes(focused.node) })[0]
+            let recipe = recipes.filter((v)=> { return v.Node.branch.includes(focused.element) })[0]
 
-            let branch = recipe.node.branch
+            let branch = recipe.Node.branch
             let temp = focused
-
-            i=0
-            // search for descendat with different innerText; do not focus Recipe Node children
-            while (temp.text == focused.text && temp.node != recipe.node.node) {
-                // hide all descendants that are not in any BRANCH; save the one in current NODE RECIPE BRANCH
+            while (temp.text == focused.text && temp.element != recipe.Node.element) {
                 for (let element of temp.children) {
                     if (!branches.includes(element)) { element.style.display = 'none' }
                     else if (branch.includes(element)) { temp = new Node(element) }
                 }
-                i++
-                if (i==5) {break}
             }
             new_focused.push(temp)
         }
@@ -503,40 +524,43 @@ function zoomIn() {
 
 function zoomOut() {
     /*
-    Change NODES to display by showing the parents of the current NODE in display
+    Search for the closest ancestor Element of the current NODE in display that has a different content 
+    (unless this is document.body), reassigning its original display value and that of its descendants.
     */
-    if (display.focused[0].node == document.body) { return }
+    if (display.focused[0] == body_node) { return }
     
-    console.log(display.focused[0]);
-
-
     new_focused = []
     for (let focused_node of display.focused) {
-        let parent_node = focused_node.parent
-        while (parent_node.innerText == undefined 
-          || parent_node.innerText == focused_node.text 
-          && parent_node != document.body) {
-            parent_node = parent_node.parentNode
-            for (let element of parent_node.querySelectorAll('*')) {
-                element.style.display = display.original[element]
+        let parent_element = focused_node.parent
+        while (parent_element.innerText == undefined || parent_element.innerText == focused_node.text) {
+            parent_element = parent_element.parentNode
+
+            if (parent_element == document.body || parent_element == document.body) { 
+                reset();
+                messagePopup('reset')
+                return 
+            }
+
+            for (let element of parent_element.querySelectorAll('*')) {
+                element.style.display = element.dataset.recipeekOriginalDisplay
             }
         }
-        new_focused.push(new Node(parent_node))
+        new_focused.push(new Node(parent_element))
     }
     display.focused = new_focused
 }
 
 function toggleRecipes(n, Focus=true) {
-    /**
+    /*
     Change what RECIPES to display. 
-    n represents the index of the RECIPE to display or all, if equal to -1
+    n represents the index of the RECIPE to display (if == -1, show all RECIPES)
     */
     let show = n == -1 ? recipes : [recipes[n]]
     display.recipes = show
     if (Focus == true) { singleFocus(show) }
 }
 
-function toggleImages(action) {
+function toggleImages(action) {  // TODO
     console.log(action)
     for (let element of document.body.getElementsByTagName('img')) {
         if (action == 'hide') { 
@@ -544,33 +568,46 @@ function toggleImages(action) {
             if (!element.parentNode.tagName == 'A') { console.log(element); return } 
             else { element.style.display = 'none' }
         }
-        else { element.style.display = display.original[element] }
+        else { element.style.display = element.dataset.recipeekOriginalDisplay }
     }
 }
 
 //// IN-DEVELOPMENT FUNCTIONS
-// TODO
 function saveErrors() {
     chrome.storage.local.get('feedback', f=> {
         let url = correctURL(window.location.href)
-        let feedback = f.feedback || {'list': [], 'lines': {'ing': [], 'meth': []}, 'mistakes': {'ing': [], 'meth': []}, 'misses': {'ing': [], 'meth': []} }
+        let feedback = f.feedback || {
+            'list': [], 
+            'lines': {'ing': [], 'meth': []}, 
+            'mistakes': {'ing': [], 'meth': []}, 
+            'misses': {'ing': [], 'meth': []} 
+        }
+
         if (feedback.list.includes(url)) { return }
-        chrome.storage.local.get('Results', r=> {
-            let results = r.Results[url]
-            let correct_ing = [...correctLines(ing_node[0].innerText)]
-            let correct_meth = [...correctLines(meth_node[0].innerText)]
-            
-            feedback.list.push(url)
-            feedback.lines.ing.push(...correct_ing)
-            feedback.lines.meth.push(...correct_meth)
-            feedback.mistakes.ing.push(...difference(results.ing, correct_ing))
-            feedback.mistakes.meth.push(...difference(results.meth, correct_meth))
-            feedback.misses.ing.push(...difference(correct_ing, results.ing))
-            feedback.misses.meth.push(...difference(correct_meth, results.meth))
-            
-            chrome.storage.local.set({ feedback });
-        });
+        
+        let lines = { 
+            'ing': recipes.map((recipe)=> { return correctLines(recipe.ing.text) }).flat(),
+            'meth': recipes.map((recipe)=> { return correctLines(recipe.meth.text) }).flat()
+        }
+
+        feedback.list.push(url)
+        feedback.lines.ing.push(...lines.ing)
+        feedback.lines.meth.push(...lines.meth)
+        feedback.mistakes.ing.push(...errors.ing.mistakes)
+        feedback.mistakes.meth.push(...errors.meth.mistakes)
+        feedback.misses.ing.push(...errors.ing.misses)
+        feedback.misses.meth.push(...errors.meth.misses)
+        
+        chrome.storage.local.set({ feedback });
     });
+}
+
+function displayList(n, list) {
+    for (let element of document.body.querySelectorAll('*')) {
+        if (!recipes[n][list].branch.includes(element)) { element.style.display = 'none' }
+        else { element.style.display = element.dataset.recipeekOriginalDisplay }
+    }
+    display.focused = [recipes[n][list]]
 }
 
 function displayFeedback() {
@@ -579,21 +616,34 @@ function displayFeedback() {
         
         document.body.innerHTML = ''
         
+        let p1 = document.createElement('p')
+        p1.innerText = 'click to copy this text - ' 
         let copy_btn = document.createElement('button')
-        copy_btn.id = "copy"
         copy_btn.innerText = 'COPY'
+        p1.appendChild(copy_btn);
+        
+        let p2 = document.createElement('p')
+        p2.innerText = 'Please send to - '
+        let email_btn = document.createElement('button')
+        email_btn.innerText = 'luisbsantos93@gmail.com'
+        p2.appendChild(email_btn)
+
         let content = document.createElement('div')
         content.id = "recipick-feedback"
-        document.body.appendChild(copy_btn)
+        document.body.appendChild(p1)
+        document.body.appendChild(p2)
         document.body.appendChild(content)
         document.body.style.margin = '50px'
 
         displayFeedbackLines(content, feedback.lines, 'lines')
         displayFeedbackLines(content, feedback.mistakes, 'mistakes')
         displayFeedbackLines(content, feedback.misses, 'misses')
-        
+
         copy_btn.addEventListener("click", ()=> {
             navigator.clipboard.writeText(content.innerText);
+        });
+        email_btn.addEventListener('click', ()=> { 
+            window.open('mailto:luisbsantos93@gmail.com?subject=Recipick%20Feedback');
         });
     });
 }
