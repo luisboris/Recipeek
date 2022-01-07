@@ -43,70 +43,78 @@
         
         <div id="info" class="info"></div>
         <br>
+        <hr>
        
         <div id="feedback-section" class="feedback">
-            <h4 style="text-align: center;">FEEDBACK</h4>
-            <br>
-            
-            <h6>please check every list:</h6>
-            <div id="feedback-radio" style="text-align: left;">
-            </div>
-            <hr>
-           
-            <!-- SAVE BUTTON with Modal -->
-            <div>
-                <h6>
-                    If everything seems right, click
-                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#save-modal">SAVE</button>
-                </h6>
-                <div class="modal fade" id="save-modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
-                    <div class="modal-dialog">
-                      <div class="modal-content">
-                        <div class="modal-header">
-                          <h5 class="modal-title" id="staticBackdropLabel">SAVE</h5>
-                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            Are you sure every list is correct?
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="save">Yes</button>
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Check again</button>
-                        </div>
-                      </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- WRONG BUTTON with Modal -->
-            <div>
-                <h6>
-                    If everything seems wrong, click
-                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#wrong-modal">WRONG</button>
-                </h6>
-                <div class="modal fade" id="wrong-modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
-                    <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                        <h5 class="modal-title" id="staticBackdropLabel">WRONG</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            Are you sure all the lists are wrong?
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="wrong">Yes</button>
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Check again</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <hr>
+            <p>
+                <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#feedback-collapse" aria-expanded="false" aria-controls="collapseExample">
+                    FEEDBACK
+                </button>
+            </p>
+            <div class="collapse" id="feedback-collapse">
+                <div class="card card-body">
                 
-            <h6>
-                When you're tired of checking recipes:
-                <button type="button" class="btn btn-outline-primary" id="feedback-show">SHOW FEEDBACK</button>
-            </h6>
+                    <h6>please check every list:</h6>
+                    <div id="feedback-radio" style="text-align: left;">
+                    </div>
+                    <hr>
+                
+                    <!-- SAVE BUTTON with Modal -->
+                    <div>
+                        <h6>
+                            If everything seems right, click
+                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#save-modal">SAVE</button>
+                        </h6>
+                        <div class="modal fade" id="save-modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                <h5 class="modal-title" id="staticBackdropLabel">SAVE</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    Are you sure every list is correct?
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="save">Yes</button>
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Check again</button>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- WRONG BUTTON with Modal -->
+                    <div>
+                        <h6>
+                            If everything seems wrong, click
+                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#wrong-modal">WRONG</button>
+                        </h6>
+                        <div class="modal fade" id="wrong-modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                <h5 class="modal-title" id="staticBackdropLabel">WRONG</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    Are you sure all the lists are wrong?
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="wrong">Yes</button>
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Check again</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                        
+                    <h6>
+                        When you're tired of checking recipes:
+                        <button type="button" class="btn btn-outline-primary" id="feedback-show">SHOW FEEDBACK</button>
+                    </h6>
+                    </div>
+                </div>
             </div>
         </div>
     </body>

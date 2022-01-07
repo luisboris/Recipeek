@@ -303,6 +303,27 @@ function getScore(results, lines) {
     return matched / errors
 }
 
+function overallScore(lines) {
+    /*
+    Given all of the PREDICTIONS (results) and the LINES of a group of document Elements,
+    return the proportion between MATCHES and ERRORS (false positives and negatives)
+    */
+    let all_results = [...results.ing, ...results.meth]
+    let length = all_results.length
+    let matched = 0
+    for (let line of lines) {
+        if (all_results.includes(line)) { 
+            // delete matches from list to avoid false repetetitions
+            all_results.splice(all_results.indexOf(line), 1)
+            matched++ 
+        }
+    }
+    
+    let errors = length - matched + lines.length - matched
+
+    return matched / errors
+}
+
 function findCommonAncestor(...nodes) {
     /*
     For each of the Nodes, iterate through their ancestors to find the closest one they all have in common
@@ -429,6 +450,13 @@ function multiFocus(recipes) {
         if (!branches.includes(element)) { element.style.display = 'none' }
         else { element.style.display = element.dataset.recipeekOriginalDisplay }
     }
+    
+    // IN DEVELOPMENT - show score
+    let lines = []
+    for (let node of display.focused) {
+        lines.push(...correctLines(node.text))
+    }
+    console.log(lines, overallScore(lines))
 }
 
 function singleFocus(recipes) {
@@ -451,6 +479,13 @@ function singleFocus(recipes) {
         if (!branches.includes(element)) { element.style.display = 'none' }
         else { element.style.display = element.dataset.recipeekOriginalDisplay }
     }
+
+    // IN DEVELOPMENT - show score
+    let lines = []
+    for (let node of display.focused) {
+        lines.push(...correctLines(node.text))
+    }
+    console.log(lines, overallScore(lines))
 }
 
 function reset() {

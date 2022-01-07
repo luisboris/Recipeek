@@ -1,7 +1,7 @@
 body {
-    min-width: 400px;
-    height: 500px;
-    margin: 2px black;
+    min-width: 450px;
+    height: fit-content;
+    margin: 10px ;
 }
 
 .buttons {
@@ -18,9 +18,7 @@ body {
 
 .feedback {
     padding: 20px;
-    border: 2px solid black;
 }
-
 
 .hide {
     display: none;
