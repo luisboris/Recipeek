@@ -13,27 +13,29 @@ def main():
     ing_tokens  = load_tokens('ing')
     meth_tokens = load_tokens('meth')
     
-    # get new tokens from unparsed files
-    files_parsed = []
+    # get new tokens from unparsed files and unflag them
     for file in os.listdir('database/unparsed'):
-        if file.endswith("Ingredients.txt"):
+        if file.endswith("Ingredients.txt") and file.startswith('!'):
             update_tokens(f'database/unparsed/{file}', ing_tokens)
-            files_parsed.append(file)
-        if file.endswith("Method.txt"):
+            new_name = re.sub('!', '', file, 1)
+            os.rename(f'database/unparsed/{file}', f'database/unparsed/{new_name}')
+        if file.endswith("Method.txt") and file.startswith('!'):
             update_tokens(f'database/unparsed/{file}', meth_tokens)
-            files_parsed.append(file)
+            new_name = re.sub('!', '', file, 1)
+            os.rename(f'database/unparsed/{file}', f'database/unparsed/{new_name}')
     
     # get new tokens from feedback
     tokenize_feedback(ing_tokens, meth_tokens)
 
     # update token files
     update_csv(ing_tokens, meth_tokens)
-    
+
     # move files parsed to parsed folder
     move()
     
     # update tokens in .js file
     jstokens(ing_tokens, meth_tokens)
+
 
 ### FUNCTIONS            
 def load_tokens(type):
@@ -101,7 +103,7 @@ def move():
             # check for both ingredients and method parsed
             num = re.search('[0-9]+', file)[0]
             if f'{num} - Ingredients.txt' in os.listdir('database/unparsed') and f'{num} - Method.txt' in os.listdir('database/unparsed'):
-                os.rename(f'database/unparsed/{num}.txt', f'database/parsed/{num}.txt')
+                os.rename(f'database/unparsed/!{num}.txt', f'database/parsed/{num}.txt')
                 os.rename(f'database/unparsed/{num} - Ingredients.txt', f'database/parsed/{num} - Ingredients.txt')
                 os.rename(f'database/unparsed/{num} - Method.txt', f'database/parsed/{num} - Method.txt')
         except Exception as e:

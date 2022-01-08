@@ -7,9 +7,8 @@ def main():
     
 def unglad():
     for file in os.listdir('database/unparsed'):
-        if file.startswith('!'):
-            new_name = re.sub('!', '', file, 1)
-            os.rename(f'database/unparsed/{file}', f'database/unparsed/{new_name}')
+        new_name = re.sub('!', '', file, 1)
+        os.rename(f'database/unparsed/{file}', f'database/unparsed/!{file}')
 
 def analyse():
     ### count how many stopwords in method section
