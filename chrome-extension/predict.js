@@ -22,7 +22,6 @@ const METH_PATTERNS = [
 const ING_SAVED_MODEL = 'models/saved_model/ing_lines_binary/model.json';
 const METH_SAVED_MODEL = 'models/saved_model/meth_lines_binary/model.json';
 
-
 // wait for message from PAGE.js
 chrome.runtime.onMessage.addListener( async (request)=> {
     if (request.message == "innerText") {
@@ -39,6 +38,8 @@ chrome.runtime.onMessage.addListener( async (request)=> {
             let ing_vectors = vectorize(lines, ing_tokens)
             let meth_vectors = vectorize(lines, meth_tokens)
             
+            const m1 = Date.now()
+
             // PREDICTIONS
             let ing_prediction = await predict(ing_vectors, ING_SAVED_MODEL)
             let meth_prediction = await predict(meth_vectors, METH_SAVED_MODEL)
@@ -48,9 +49,13 @@ chrome.runtime.onMessage.addListener( async (request)=> {
                 if (meth_prediction[i][0] < meth_prediction[i][1]) { meth_results.push(lines[i]) }
             }
             let results = [ing_results, meth_results]
+           
+            const m2 = Date.now()
             
             // SAVE RESULTS & CALL CONTENT SCRIPT
             sendResults(results, request.url)
+            
+            console.log('TIMES:', (m2-m1)/1000);
         }); 
     }
 });

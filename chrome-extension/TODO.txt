@@ -2,6 +2,8 @@
 
 - pages without recipes
 
+- DOMContent loaded???
+
 - list of saved urls ()
 
 - page title
@@ -9,13 +11,20 @@
 - other sections (notes, etc.)
 
 - SCORE: get the node with highest score, try the same 
+    - matches:2pts, unmached only 1 pt
 
 - TRY: copy contents into iframe
 
 - OPTIONS PAGE:
+    - go to recipe vs. show only recipe
     - show/hide images
     - show/hide blank elements
 
 ------------------
 https://www.bakingmad.com/recipes/wholemeal-italian-mushroom-pesto-and-artichoke-calzone
 listas ao contrário
+
+------------------
+Performance times: predict.js = 3-8s
+
+8, 4, 1

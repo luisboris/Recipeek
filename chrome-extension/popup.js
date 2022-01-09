@@ -31,12 +31,12 @@ chrome.tabs.query({ active: true, currentWindow: true }, async (tab) => {
 
     // RADIOS
     for (let radio of document.getElementsByName('toggle')) { 
-        radio.addEventListener('change', ()=> handleRadios() );
+        radio.addEventListener('change', (radio)=> handleRadios(radio) );
     }
 
     // CHECKBOXES
     for (let box of document.getElementsByName('checkbox')) { 
-        box.addEventListener('change', ()=> handleCheckboxes() );
+        box.addEventListener('change', (checkbox)=> handleCheckboxes(checkbox) );
     }
 });
 
@@ -101,7 +101,7 @@ function loading(load) {
         `<label class="btn btn-outline-primary" for="btnradio0">${string}</label>`
 }
 
-function handleRadios() {
+function handleRadios(radio) {
     /*
     TODOsend an array of strings with each value (recipe + number + hide/show)
     */
@@ -112,11 +112,10 @@ function handleRadios() {
     }
 }
 
-function handleCheckboxes() {
-    for (let box of document.getElementsByName('checkbox')) {
-        let content = box.checked ? 'hide' : 'show'
-        if (box.checked) { console.log(box.value, content); messageScript(tabId, box.value, content) }
-    }  
+function handleCheckboxes(checkbox) {
+        let content = checkbox.target.checked ? 'hide' : 'show'
+        console.log(checkbox.target.value, content);
+        messageScript(tabId, checkbox.target.value, content)
 }
 
 function createRecipeRadios(length) {

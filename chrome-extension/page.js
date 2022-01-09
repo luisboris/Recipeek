@@ -1,3 +1,5 @@
+const start = Date.now()
+
 const NUMBERS = '[0-9]+|[\u00BC-\u00BE\u2150-\u215E]|one|two|three|four|five|six|seven|eight|nine|ten|twelve|a dozen|twenty'
 const NUMBER_RE = `(${NUMBERS})([,./-](${NUMBERS}))?`
 const UNIT_RE = 'tsp|teaspoons|teaspoon|tbsp|tb|tablespoons|tablespoon|cups|cup|c|lb|pounds|pound|pd|ounce|ounces|oz|gram|grams|gr|g|kgs|kg|ml|litres|liters|litre|liter|l|fl oz|quarts|quart|gallons|gallon|pints|pint|inch|in|cm|centimeter|centimitre|mm|milimitre|milimiter'
@@ -14,7 +16,7 @@ class Node {
         this.element = element;
         this.score = score;
         this.text = this.element.innerText;
-        this.lines = this.text.split('\n');
+        this.lines = correctLines(this.text)
         this.position = elementPosition(this.element).position
         this.branch = getBranch(this.element).branch;
         this.trunk = getBranch(this.element).trunk;
@@ -55,6 +57,7 @@ main()
 
 //// MAIN FUNCTIONS
 function main() {
+
     chrome.runtime.onMessage.addListener((request, sender, sendResponse)=> {
         // confirm this file is loaded (POPUP.js)
         if (request.message == 'you there?') { 
@@ -97,6 +100,7 @@ function main() {
         if (request.message == 'feedback-show') { displayFeedback() }
         if (request.message == 'focus') { focus_type = request.content }
     });
+
 }
 
 function loading() {
@@ -116,6 +120,8 @@ function processResults(content) {
     5. Check mismatches between RESULTS and MATCHES (lines that were wrongly predicted)
     6. Send message to POPUP
     */
+    const m1 = Date.now()
+
     if (results == undefined) { messagePopup('results undefined', true) }
 
     results = {'ing': content[0], 'meth': content[1]}
@@ -160,6 +166,8 @@ function processResults(content) {
     has_results = true
     messagePopup('results :)', false, length=recipes.length)
 
+    const m2 = Date.now()
+    console.log('TIMES:', (m2-start)/1000, (m2-m1)/1000)
 }
 
 function findListNode(results) {   
@@ -301,7 +309,7 @@ function getScore(results, lines) {
     
     let errors = results.length - matched + lines.length - matched
 
-    return matched / errors
+    return matched * 2 / errors
 }
 
 function overallScore(lines) {
