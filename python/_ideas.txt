@@ -1,4 +1,5 @@
-- for multiple lists
+- search for section instead of lines
+    - search within InnerHTML
 
 -------------
 
@@ -7,3 +8,4 @@ CONVERT TO .JS:
 tensorflowjs_converter --input_format=tf_saved_model --output_node_names='js' --saved_model_tags=serve  --control_flow_v2=true models/saved_model/ing_lines_binary ../chrome-extension/models/saved_model/ing_lines_binary
 tensorflowjs_converter --input_format=tf_saved_model --output_node_names='js' --saved_model_tags=serve  --control_flow_v2=true models/saved_model/meth_lines_binary ../chrome-extension/models/saved_model/meth_lines_binary
 tensorflowjs_converter --input_format=tf_saved_model --output_node_names='js' --saved_model_tags=serve  --control_flow_v2=true models/saved_model/combined_lines_categorical ../chrome-extension/models/saved_model/combined_lines_categorical
+

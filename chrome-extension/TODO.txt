@@ -8,23 +8,34 @@
 
 - page title
 
+- print
+
+- ensure min padding
+
 - other sections (notes, etc.)
 
-- SCORE: get the node with highest score, try the same 
-    - matches:2pts, unmached only 1 pt
+- SCORE: meth lines: erase the ones wich are in confirmed ing Node
 
 - TRY: copy contents into iframe
 
+- pin icon
+
 - OPTIONS PAGE:
     - go to recipe vs. show only recipe
-    - show/hide images
-    - show/hide blank elements
+    - focus type
 
 ------------------
 https://www.bakingmad.com/recipes/wholemeal-italian-mushroom-pesto-and-artichoke-calzone
-listas ao contrário
+- listas ao contrário
+
+https://www.greatbritishchefs.com/recipes/orange-almond-polenta-bundt-cake-recipe
+- listas de ingredients no meio do método
 
 ------------------
-Performance times: predict.js = 3-8s
 
-8, 4, 1
+Recipe Sublists:
+ - not working when Recipe node is broader than correct
+
+getMultipleElementsForSingleList:
+ - this will try to match all of the lines
+  

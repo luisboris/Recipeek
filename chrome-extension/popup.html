@@ -6,9 +6,12 @@
         <link rel="stylesheet" href="popup.css"> 
         <script src='bootstrap.bundle.min.js'></script> 
         <script src="popup.js" defer></script>
+        <!-- TODO -->
+        <script src="options.js" defer></script>
     </head>
 
     <body>
+        <!-- BUTTONS -->
         <div id="display-section" class="buttons">
             <div id="button-section" class="btn-group" role="group" aria-label="Basic example">
                 <button type="button" class="btn btn-primary" id="zoom-in">Zoom In</button>
@@ -18,10 +21,6 @@
             <br>
             
             <div id="radio-section" class="btn">
-                
-                <input type="checbox" class="hide" value="imgs" name="toggle-2" checked='true'>
-                <label for="imgs" class="hide">Show Links</label>
-                
                 <div id="recipes-radio" class="btn-group" role="group" aria-label="Basic radio toggle button group">
                 </div>
             </div>
@@ -35,23 +34,34 @@
                 <input type="radio" class=form-check-input" name="toggle" id="multi-focus" value="focus2" autocomplete="off">
                 <label class="form-check-label" for="multi-focus">Multi Focus</label>
             </div>
-            <br>
-
-            <input type="checkbox" value="imgs" name="checkbox">
-            <label for="imgs">Hide Images</label>
         </div>
         <br>
 
-        
+        <!-- INFO -->
         <div id="info" class="info"></div>
         <br>
         <hr>
        
+        <!-- FEEDBACK -->
         <div id="feedback-section" class="feedback">
             <p>
                 <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#feedback-collapse" aria-expanded="false" aria-controls="collapseExample">
                     FEEDBACK
                 </button>
+
+                <!-- TODO -->
+                <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#options-collapse" aria-expanded="false" aria-controls="collapseExample">
+                    OPTIONS
+                </button>
+                <!-- OPTIONS.HTML -->
+                <button class="btn btn-primary" type="button" aria-expanded="false" id='options' style="display: none;">
+                    OPTIONS
+                </button>
+                <!-- OPTIONS.HTML -->
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" name="checkbox" id="displays" value="min-height" unchecked>
+                    <label class="form-check-label" for="images">DISPLAY</label>
+                </div>
             </p>
             <div class="collapse" id="feedback-collapse">
                 <div class="card card-body">
@@ -114,7 +124,38 @@
                     <h6>
                         When you're tired of checking recipes:
                         <button type="button" class="btn btn-outline-primary" id="feedback-show">SHOW FEEDBACK</button>
+                        <button type="button" class="btn btn-outline-primary" id="feedback-reset">RESET FEEDBACK</button>
                     </h6>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- OPTIONS TODO -->
+            <div class="collapse" id="options-collapse">
+                <div class="card card-body">
+                    <div id="recipe-display" class="radio-group">
+                        <div class="form-check">
+                            <input class="form-check-input radio" type="radio" name="recipe-display" id="section">
+                            <label class="form-check-label" for="section">Show entire section</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input radio" type="radio" name="recipe-display" id="lists">
+                            <label class="form-check-label" for="lists">Show only Ingredients and Instructions</label>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input checkbox" type="checkbox" role="switch" id="images">
+                        <label class="form-check-label" for="images">Hide Images</label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input checkbox" type="checkbox" role="switch" id="links">
+                        <label class="form-check-label" for="links">Hide Links</label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input checkbox" type="checkbox" role="switch" id="pretty">
+                        <label class="form-check-label" for="pretty">Pretty Display</label>
                     </div>
                 </div>
             </div>

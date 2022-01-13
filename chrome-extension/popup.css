@@ -10,8 +10,8 @@ body {
     height: 100px;
 }
 
-.infoo {
-    height: 60px;
+.info {
+    width: fit-content;
     font-size: x-large;
     text-align: center;
 }

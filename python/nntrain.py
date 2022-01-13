@@ -17,7 +17,7 @@ METH_FILE = 'database/input/meth_x_y.csv'
 def main():
     train_model(ING_FILE, 'ing')
     train_model(METH_FILE, 'meth')
-    #train_model_combined()
+    train_model_combined()
 
     # convert models to JavaScript
     for model_file in os.listdir('models/saved_model'):
@@ -55,7 +55,7 @@ def train_model(file, type):
     model.fit(x_train, y_train, epochs=3, validation_data=(x_test, y_test))
 
     model.save(f'models/saved_model/{type}_lines_binary')
-    model.save(f'models/H5/{type}_lines_binary.h5')
+
 
 def train_model_combined():
     (x_train, y_train), (x_test, y_test) = combine_data() 
@@ -87,7 +87,6 @@ def train_model_combined():
     model.fit(x_train, y_train, epochs=4, validation_data=(x_test, y_test))
 
     model.save(f'models/saved_model/combined_lines_categorical')
-    model.save(f'models/H5/combined_lines_categorical.h5')
 
 
 def load_data(file):
@@ -144,12 +143,12 @@ def combine_data():
                         int(ing_row[9]),            # title pattern
                         int(ing_row[10]),           # ing pattern 1
                         int(ing_row[11]),           # ing pattern 2
-                        int(ing_row[10]),           # meth pattern
+                        int(ing_row[12]),           # meth pattern
                     ])
                     category = int(meth_row[-1] + ing_row[-1], 2)
                     yy.append(category if category in [0,1,2] else 0)
                 else:
-                    print('differente lines:\n', ing_row[0], '\n', meth_row[0])
+                    print('different lines:\n', ing_row[0], '\n', meth_row[0])
                 
             normalize(xx)
 

@@ -22,9 +22,16 @@ const METH_PATTERNS = [
 const ING_SAVED_MODEL = 'models/saved_model/ing_lines_binary/model.json';
 const METH_SAVED_MODEL = 'models/saved_model/meth_lines_binary/model.json';
 
+
+// IN DEVLEOPLMENT
+const red = 'rf'
+
 // wait for message from PAGE.js
 chrome.runtime.onMessage.addListener( async (request)=> {
     if (request.message == "innerText") {
+        
+        const m1 = Date.now()
+
         chrome.storage.local.get('tokens', async (lib) => { 
             
             const ing_tokens = await lib.tokens['ing']
@@ -38,8 +45,6 @@ chrome.runtime.onMessage.addListener( async (request)=> {
             let ing_vectors = vectorize(lines, ing_tokens)
             let meth_vectors = vectorize(lines, meth_tokens)
             
-            const m1 = Date.now()
-
             // PREDICTIONS
             let ing_prediction = await predict(ing_vectors, ING_SAVED_MODEL)
             let meth_prediction = await predict(meth_vectors, METH_SAVED_MODEL)
@@ -115,7 +120,7 @@ function vectorize(lines, tokens) {
     [length, score, neighbor_scores(3 before + 3 after), [patterns]] 
     */
     let words = lines.map(line=> getTokens(line))
-    let scores = words.map(ww=> getScore(ww, tokens))
+    let scores = words.map(ww=> getTokensScore(ww, tokens))
 
     let vectors = []
     let padded_scores = [0, 0, 0, ...scores, 0, 0, 0]
@@ -157,7 +162,7 @@ function getTokens(line) {
     return words.filter((w) => { return !numbers.includes(w) && !STOPWORDS.includes(w)})
 }
 
-function getScore(words, tokens) {
+function getTokensScore(words, tokens) {
     /*
     Get the score for a line that is the sum of every token's score divided by the number of words
     */

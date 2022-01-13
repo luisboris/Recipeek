@@ -58,7 +58,7 @@ def main():
         prediction.tolist().index(max(prediction)) 
         for prediction in combined_prediction
     ]
-    print('RECIPE PREDICTION\nINPUT SHAPE:', np.array(combined_prediction_lines).shape)
+    print('COMBINED PREDICTION\nINPUT SHAPE:', np.array(combined_prediction_lines).shape)
     print_prediction(n, combined_prediction, combined_result)
 
 
@@ -89,7 +89,7 @@ def load_input_data(n, type):
     with open(f'database/tokens/{type}_tokens.csv', 'r') as r1:
         reader1 = csv.reader(r1)
         tokens = {row[0]: int(row[1]) for row in reader1}
-        with open(f'database/unparsed/{n}.txt', 'r', encoding='utf-8') as r2:
+        with open(f'database/unparsed/!{n}.txt', 'r', encoding='utf-8') as r2:
             file_vectors = vectorize(r2.read().split('\n'), tokens)
             normalize(file_vectors)
             return file_vectors
@@ -120,7 +120,7 @@ def combine_data(ing, meth):
 
 def print_prediction(n, prediction, result):
     print('------------------------------------------------')
-    with open(f'database/unparsed/{n}.txt', 'r', encoding='utf-8') as r:
+    with open(f'database/unparsed/!{n}.txt', 'r', encoding='utf-8') as r:
         for pred, res, line in zip(prediction, result, r.read().split('\n')):
             if res != 0:
                print(pred, line)
