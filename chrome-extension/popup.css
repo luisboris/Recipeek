@@ -1,13 +1,16 @@
 body {
-    min-width: 450px;
+    min-width: 350px;
+    width: fit-content;
     height: fit-content;
     margin: 10px ;
+    font-size: small;
 }
 
 .buttons {
     padding: 10px;
     text-align: center;
-    height: 100px;
+    height: 120px;
+
 }
 
 .info {

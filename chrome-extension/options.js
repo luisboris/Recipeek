@@ -6,8 +6,7 @@ chrome.storage.sync.get('options', (data)=> {
     let options = data.options
 
     for (let check of checks) {
-        options[check.id] == 'on' ? check.checked = true : check.checked = false
-        check.addEventListener('change', (c)=> hhandleChecks(c))
+        options[check.name] == 'on' ? check.checked = true : check.checked = false
     }
 
     for (let group of radio_groups) {
@@ -22,13 +21,13 @@ chrome.storage.sync.get('options', (data)=> {
 
 
 function hhandleChecks(check) {
-    let parameter = check.target.id
+    let parameter = check.target.name
     let choice = check.target.checked ? 'on' : 'off'
     
     chrome.storage.sync.get('options', (data)=> {
         let options = data.options
         options[parameter] = choice
-        
+
         chrome.storage.sync.set({ options })
     });
 }
@@ -41,8 +40,6 @@ function hhandleRadios(radio) {
         let options = data.options
         options[parameter] = choice
 
-        info.innerText = options['recipe-display']
-        
         chrome.storage.sync.set({ options })
     });
 }

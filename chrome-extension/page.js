@@ -24,14 +24,16 @@ class Node {
         this.lines = correctLines(this.text);
         this.position = elementPosition(this.element).position;
         this.deepness = elementPosition(this.element).deepness;
-        this.branch = getBranch(this.element).branch;
-        this.trunk = getBranch(this.element).trunk;
+        this.branch = getBranch([this]).branch;
+        this.trunk = getBranch([this]).trunk;
         this.parent = this.element.parentNode;
         this.children = this.element.children;
+        this.descendants = this.element.querySelectorAll('*')
     }
 }
 class Recipe {
-    constructor(ingredients, method) {
+    constructor(ingredients, method, index) {
+        this.index = index;
         this.ing = ingredients;
         this.meth = method;
         this.Node = findCommonAncestor(this.ing, this.meth);
@@ -47,17 +49,26 @@ let results = {}                            // lines identified by predict.js
 let errors = {                              // false positives and negatives
     'ing': { 'mistakes': [], 'misses': [] }, 
     'meth': { 'mistakes': [], 'misses': [] } 
-}    
+}   
+
 const body_node = new Node(document.body)  
-let display = {
-    'body': document.body.innerHTML,        // body of page, without modifications
-    'focused': [body_node],                 // current NODES in display
-    'recipes': [],                          // current RECIPES in display
-    'focus': 'single'                       // current type of Display (entire SECTION or just LISTS)
-}
 let nodes = []                              // all Node Objects
 let recipes = []                            // all Recipe Objects
 
+let display = {
+    'body': document.body.innerHTML,                        // body of page, without modifications
+    'focused': [body_node],                                 // current NODES in display
+    'type': 'page',                                         // if it's currently displaying the original PAGE, the RECIPE or a single LIST
+    'recipes': [],                                          // current RECIPES in display
+    'focus': 'single',                                      // current type of Display (entire SECTION or just LISTS)
+    get branch() { return getBranch(this.focused).branch }  // BRANCHES of all NODES in display
+}
+let images = [], empty = []                                 // Elements not to change in display actions
+for (let element of document.body.querySelectorAll('*')) {
+    let tags = ['IMG', 'img', 'FIGURE', 'figure', 'PICTURE', 'picture', 'SVG', 'svg']
+    if (tags.includes(element.tagName)) { images.push(element) }
+    else if (element.innerText == '') { empty.push(element) }
+}
 
 
 
@@ -92,28 +103,33 @@ function main() {
     setDisplay()
 
     // manage BUTTONS from POPUP
-    chrome.runtime.onMessage.addListener(request=> {
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse)=> {
         if (has_results == false) { return }
 
-        console.log('MESSAGE:', request.message, request.content || '');
+        console.log('MESSAGE:', request);
 
-        if (request.message == 'reset') { reset() }
-        if (request.message == 'zoom-out') { zoomOut() }
-        if (request.message == 'zoom-in') { zoomIn() }
-        if (request.message == 'imgs') { toggleImages(request.content) }
-        if (request.message == 'recipes') { toggleRecipes(request.content) }
-        if (request.message == 'recipes.ing') { displayList(request.content, 'ing') }
-        if (request.message == 'recipes.meth') { displayList(request.content, 'meth') }
+        if(request.message == 'display') { updateDisplay() }
 
-        // IN-DEVELOPMENT MODE
-        if (request.message == 'save') { saveErrors() }
-        if (request.message == 'feedback') { toggleRecipes(request.content) }
-        if (request.message == 'feedback.ing') { displayList(request.content, 'ing') }
-        if (request.message == 'feedback.meth') { displayList(request.content, 'meth') }
-        if (request.message == 'feedback-show') { displayFeedback() }
-        if (request.message == 'feedback-reset') { resetFeedback() }
-        if (request.message == 'min-height') { displayHeight(request.content) }
-        if (request.message == 'focus') { focus_type = request.content }
+        if (request.parameter == 'reset') { reset() }
+        if (request.parameter == 'zoom-out') { zoomOut() }
+        if (request.parameter == 'zoom-in') { zoomIn() }
+        if (request.parameter == 'recipes') { toggleRecipes(request.choice) }
+        if (request.parameter == 'recipes.ing') { focusList(request.choice, 'ing') }
+        if (request.parameter == 'recipes.meth') { focusList(request.choice, 'meth') }
+
+        if (request.parameter == 'print') { window.print() } 
+
+        if (request.parameter == 'focus') { recipeDisplay(request.choice) }
+        if (request.parameter == 'images') { images.forEach(img => toggleImages(img, request.choice)) }
+        //if (request.parameter == 'links') { recipeDisplay(request.choice) }
+        if (request.parameter == 'min-height') { empty.forEach(el => heightDisplay(el, request.choice)) }
+
+        // IN-DEVELOPMENT MODE - FEEDBACK
+        if (request.parameter == 'save') { saveErrors() }
+        if (request.parameter == 'feedback-show') { displayFeedback() }
+        if (request.parameter == 'feedback-reset') { resetFeedback() }
+
+        //unchangedDisplay()
     });
 }
 
@@ -135,9 +151,9 @@ function processResults(content) {
     */
     const m1 = Date.now()
 
-    if (results == undefined) { messagePopup('results undefined', true) }
+    if (content == undefined) { messagePopup('results undefined', true) }
 
-    results = { 'ing': content[0], 'meth': content[1], 'all': [...content[0], ...content[1]] }
+    results = { 'ing': content[0], 'meth': content[1], 'all': content[2] }
     console.log(results.ing); console.log(results.meth); 
 
     // SEARCH FOR MATCHES
@@ -172,19 +188,33 @@ function processResults(content) {
         }
     }
     else { 
-        console.log('1ST RECIPE:', new Recipe(ing_node, meth_node));
-        let new_nodes = recipeSublists(findCommonAncestor(ing_node, meth_node))
-        recipes.push(new Recipe(new_nodes.ing, new_nodes.meth))
-        console.log('2ND RECIPE:', recipes[0]);
-        console.log('RECIPE NODE:', recipe_node);
+        let recipe = new Recipe(ing_node, meth_node, 0)
+        console.log('1ST RECIPE:', recipe);
+        let new_nodes = recipeSublists(recipe.Node)
+        recipes.push(new Recipe(new_nodes.ing, new_nodes.meth, 0))
+        console.log('FINAL RECIPE:', recipes[0]);
     }
 
-
+    
 
     //console.log('RECIPES:'); console.log(recipes);
 
+    // store RESULTS - TODO if using MAIN.html
     has_results = true
-    messagePopup('results :)', false, length=recipes.length)
+    chrome.storage.local.get('recipes', async (data)=> {
+        let stored_recipes = data.recipes || {}
+        let url = correctURL(window.location.href)
+        stored_recipes[url] = recipes
+
+        await chrome.storage.local.set({ recipes: stored_recipes })
+        //messagePopup('results :)', false, length=recipes.length)
+    });
+
+    // check if RECIPE Node score is higher than the score of the LISTS Nodes 
+    // (which probabily means that it found the RECIPE but didn't find the LISTS correctly)
+    let lists = recipes[0].score >= recipes[0].Node.score
+    console.log(lists);
+    messagePopup('results :)', false, 0, lists)
 
     const m2 = Date.now()
     console.log('TIMES:', (m2-start)/1000, (m2-m1)/1000)
@@ -194,6 +224,7 @@ function findListNode(results, type=undefined) {
     /*
     Search document and find the NODE with the highest correspondence with the RESULTS for a given LIST. 
     Avoid Elements that are not visible (no offsetHeight)
+    Do not count lines which are already in Ingredients Node
     Return a Node Object or null if there is no correspondence
     */
     let best_match = [null, 0]
@@ -201,6 +232,7 @@ function findListNode(results, type=undefined) {
     for (let element of text_elements) {
         if (element.offsetHeight == 0) { continue } 
         let lines = correctLines(element.innerText)
+        
         score = getScore(results, lines)
         
         // TODO TEST THIS
@@ -219,12 +251,18 @@ function recipeSublists(ancestor) {
     Find best matches for each list within scope of RECIPE Element
     
     */
-    let ing_node = findSublists('ing')
-    let meth_node = findSublists('meth')
+    let ing_node = findSublist('ing')
+    let meth_node = findSublist('meth')
 
-    function findSublists(type) {
+    console.log('COMPARE SCORES:', 'RECIPE:', ancestor.score, 'ING NODE:', ing_node.score, 'METH NODE:', meth_node.score)
+
+    function findSublist(type) {
         // filter LINES in RESULTS that are not in RECIPE's innerText
         let new_results = results[type].filter(line=> { return ancestor.lines.includes(line) })
+
+        // TODO - TEST THIS or: score/2
+        if (type == 'meth') { new_results = new_results.filter(line=> { return !ing_node.lines.includes(line) }) }
+        // TODO: it could be multiple node (like a <p> for each line, without common parent)
 
         let best_match = [null, 0]
         for (let element of ancestor.element.querySelectorAll('*')) {
@@ -237,14 +275,52 @@ function recipeSublists(ancestor) {
             
             if (score > best_match[1]) { best_match = [element, score] }
         }
-        console.log(best_match);
-        return new Node(best_match[0], best_match[1])
+        
+        return new Node(best_match[0], getScore(new_results, correctLines(best_match[0].innerText)))
+    }
+
+    // TODO ........
+    function findSublists(type) {
+        let ing_results = results['ing'].filter(line=> { return ancestor.lines.includes(line) })
+        let meth_results = results['meth'].filter(line=> { return ancestor.lines.includes(line) })
+        // find if LIST is spread along multiple Elements - get all Elements from RECIPE Element starting from the first that 
+        // contains the first LINE of RESULTS until the one who contains the last LINE.
+        let first = undefined, m1, last = undefined
+        let scores = []
+        for (let child of ancestor.children) {
+            if (child.innerText == undefined || child.innerText == '') { continue }
+            if (correctLines(child.innerText).includes(results.all[0])) { first = child }
+            if (correctLines(child.innerText).includes(results.all[results.all.length-1])) { last = child }
+            if (first == undefined) { continue }
+
+            // how many
+            let lines = correctLines(child.innerText)
+            let ing_score = results.ing.filter(line=> { return lines.includes(line) }).length
+            let meth_score = results.meth.filter(line=> { return lines.includes(line) }).length
+            //let ing_score = getScore(results.ing, lines)
+            //let meth_score = getScore(results.meth, lines)
+            scores.push([child, ing_score, meth_score])
+
+            if (last != undefined) { break }
+        }
+        console.log(scores);
+        // find best division
+        let best_score = [null, 0]
+        for (let i = 1; i < scores.length; i++) {
+            let ing_score = scores.slice(0, i).reduce((total, score)=> { return total = total + score[1] }, 0)
+            let meth_score = scores.slice(i).reduce((total, score)=> { return total = total + score[2] }, 0)
+            if (ing_score+meth_score > best_score[1]) { best_score = [scores[i][0], ing_score+meth_score] }
+            console.log(best_score);
+        }
+
+        console.log(first, last);
     }
 
     return {'ing': ing_node, 'meth': meth_node}
 }
 
-function getMultipleElementsForSingleList(results, node) { // TODO PROBLEM: this will try to match all of the lines
+// TODO PROBLEM: this will try to match all of the lines
+function getMultipleElementsForSingleList(results, node) { 
     /*
     Starting from first element, check Elements' innerText for list content, until list is \\\exhausted,
     saving the ones who have Matches.
@@ -290,7 +366,7 @@ function getMultipleElementsForSingleList(results, node) { // TODO PROBLEM: this
     }
     return best_match
 }
-
+// TODO
 function multipleLists(results, node) {
     /* 
     Check if the page has multiple LISTS of the same type (Ingredients or Method). 
@@ -410,19 +486,24 @@ function findCommonAncestor(...nodes) {
     return ancestor
 }
 
-function getBranch(element) { 
+function getBranch(nodes) { 
     /*
-    Given an HTML Element, return an array of its ancestors (TRUNK) and an array with the complete BRANCH 
+    Given an array of NODES, return an array of their HTML Element ancestors (TRUNK) and an array with the complete BRANCH 
     (from ancestor to descendants), both of them in descending order.
     */
-    let trunk = [element]                                             
-    let temp = element
-    while (temp != document.documentElement) {
-        trunk.unshift(temp);
-        temp = temp.parentNode;
-    }
-    let branch = trunk.concat(...element.querySelectorAll('*'))  
-    return { branch: branch, trunk: trunk }
+    let trunks = []
+    let branches = []
+    for (let node of nodes) {
+        let trunk = [node.element]
+        let temp = node.element
+        while (temp != document.documentElement) {
+            trunk.unshift(temp);
+            temp = temp.parentNode;
+        }
+        trunks.push(...trunk)
+        branches.push(...trunk, ...node.element.querySelectorAll('*'))
+    }                                             
+    return { branch: branches, trunk: trunks }
 }
 
 function deepestNode(element) {
@@ -517,8 +598,9 @@ function correctURL(url) {
     return url.includes('/#') ? url.replace(/\/#.+/, '/') : url
 }
 
-function messagePopup(message, error=false, length=0) {
-    chrome.runtime.sendMessage({ message, length });
+function messagePopup(message, error=false, length=0, lists=true) {
+    chrome.runtime.sendMessage({ message, length, lists });
+    console.log(lists);
     if (error) { throw new Error(message) }
 }
 
@@ -530,69 +612,61 @@ function setDisplay() {
         options['recipe-display'] == 'lists' ? display.focus = 'multi' : display.focus = 'single'
 
         // hide/show IMAGES, LINKS, etc.
-        let image_tags = ['IMG', 'img', 'FIGURE', 'figure', 'PICTURE', 'picture', 'SVG', 'svg']
         for (let element of document.body.querySelectorAll('*')) { 
-            if (options.images == 'on' && image_tags.includes(element.tagName) 
-             || options.links == 'on' && element.tagName == 'A'
-             || options.pretty == 'on' && element.innerText == undefined) {
-                element.dataset.recipeekOriginalDisplay = 'none'
-                element.style.display = 'none'
+            element.dataset.recipeekOriginalDisplay = element.style.display;
+            element.dataset.recipeekOriginalHeight = element.style.height
+            element.dataset.recipeekOriginaMinHeight = element.style.minHeight
+            
+            if (images.includes(element)) { toggleImages(element, options.images) }
+            else if (empty.includes(element)) { heightDisplay(element, options.minHeight) }
+        }
+    });
+}
+
+function updateDisplay() {
+    chrome.storage.sync.get('options', data=> {
+
+        console.log(data.options);
+
+        let options = data.options
+        let img_choice = options.images
+        let height_choice = options.minHeight
+
+        for (let element of document.body.querySelectorAll('*')) {
+            if (!display.branch.includes(element)) { 
+                element.style.display = 'none' 
+            }
+            else if (images.includes(element) && img_choice == 'on') { 
+                toggleImages(element)
+            }
+            else if (element.innerText == '') {
+                heightDisplay(element, height_choice)
             }
             else { 
-                element.dataset.recipeekOriginalDisplay = element.style.display;
-                element.dataset.recipeekOriginalMinHeight = element.style.minHeight;
-                element.dataset.recipeekOriginalHeight = element.style.height;
+                element.style.display = element.dataset.recipeekOriginalDisplay 
             }
-        }   
+        }
     });
 }
 
 
 ////// ACTIONS
 
-function multiFocus(recipes) {
+function focusNode(recipes) {
     /*
     Given an array of RECIPES, get the BRANCHES of each of their LISTS BRANCH and hide all elements outside of them
     Update DISPLAY object
     */
-    let branches = []
-    display.focused = []
-
-    for (let recipe of recipes) {
-        branches.push(...recipe.ing.branch, ...recipe.meth.branch)
-        display.focused.push(recipe.ing, recipe.meth)
-    }
-    for (let element of document.body.querySelectorAll('*')) {
-        if (!branches.includes(element)) { element.style.display = 'none' }
-        else { element.style.display = element.dataset.recipeekOriginalDisplay }
-    }
-    
-    // IN DEVELOPMENT MODE - show score
-    let lines = []
-    for (let node of display.focused) {
-        lines.push(...correctLines(node.text))
-    }
-    console.log(lines, getScore(results.all, lines))
-}
-
-function singleFocus(recipes) {
     /*
     Given an array of RECIPES, get each of their BRANCHES and hide all elements outside of them
     Update DISPLAY object
     */
-    if (display.focus == 'multi') { multiFocus(recipes); return }
+    display.type = 'recipe'
 
-    let branches = []
-    display.focused = []
-    
-    for (let recipe of recipes) {
-        branches.push(...recipe.Node.branch)
-        display.focused.push(recipe.Node)
-    }
-    for (let element of document.body.querySelectorAll('*')) {
-        if (!branches.includes(element)) { element.style.display = 'none' }
-        else { element.style.display = element.dataset.recipeekOriginalDisplay }
-    }
+    if (display.focus == 'multi') { display.focused = recipes.map(rec=> { return [rec.ing, rec.meth] }).flat() }
+    if (display.focus == 'single') { display.focused = recipes.map(rec=> { return rec.Node }).flat() }
+
+    updateDisplay()
 
     // IN DEVELOPMENT MODE - 
         //show score
@@ -600,21 +674,27 @@ function singleFocus(recipes) {
         for (let node of display.focused) {
             lines.push(...correctLines(node.text))
         }
-        console.log(lines, getScore(results.all, lines))
+        console.log('SCORE:', getScore(results.all, lines))
+}
+
+function focusList(n, list) {
+    display.type = list
+    display.focused = [recipes[n][list]]
+
+    updateDisplay()
+
 }
 
 function reset() {
     /*
     Reassign original display values
     */
-    for (let element of document.body.querySelectorAll('*')) { 
-        element.style.display = element.dataset.recipeekOriginalDisplay;
-        element.style.minHeight = element.dataset.recipeekOriginalMinHeight
-        element.style.height = element.dataset.recipeekOriginalHeight
-    }
     
+    display.type = 'page'
     display.recipes = []
     display.focused = [body_node]
+    
+    updateDisplay()
 }
 
 function zoomIn() {
@@ -710,10 +790,40 @@ function toggleRecipes(n, Focus=true) {
     */
     let show = n == -1 ? recipes : [recipes[n]]
     display.recipes = show
-    if (Focus == true) { singleFocus(show) }
+    if (Focus == true) { focusNode(show) }
 }
 
-//// IN-DEVELOPMENT MODE FUNCTIONS
+////// OPTIONS
+function recipeDisplay(type) {
+    /*
+    TODO
+    */
+   console.log(display.type);
+    if (type == 1) { display.focus = 'single' }
+    else { display.focus = 'multi' }
+
+    if (display.type == 'recipe') { focusNode(recipes) }
+    else if (display.type != 'page') { focusList(0, display.type) }
+}
+
+function heightDisplay(element, choice) {
+    if (choice == 'on') { 
+        element.style.height = 'fit-content'; 
+        element.style.minHeight = 'fit-content'; 
+    }  
+    if (choice == 'off') {
+        element.style.height = element.dataset.recipeekOriginalHeight
+        element.style.minHeight = element.dataset.recipeekOriginalMinHeight 
+    }
+}
+
+function toggleImages(image, choice) {
+        if (choice == 'on' || !display.branch.includes(image)) { image.style.display = 'none' }
+        else { image.style.display = image.dataset.recipeekOriginalDisplay }
+}
+
+
+//// IN-DEVELOPMENT MODE FUNCTIONS - FEEDBACK
 function getErrors() {
     /*
     Check for mismatches between RESULTS and the corresponding MATCH (Node) found for each type (Ingredients and Method)
@@ -771,14 +881,6 @@ function saveErrors() {
         
         chrome.storage.local.set({ feedback });
     });
-}
-
-function displayList(n, list) {
-    for (let element of document.body.querySelectorAll('*')) {
-        if (!recipes[n][list].branch.includes(element)) { element.style.display = 'none' }
-        else { element.style.display = element.dataset.recipeekOriginalDisplay }
-    }
-    display.focused = [recipes[n][list]]
 }
 
 function displayFeedback() {
@@ -846,15 +948,3 @@ function resetFeedback() {
     });
 }
 
-function displayHeight(type) {
-    for (let element of document.body.querySelectorAll('*')) {
-        if (element.innerText == '' && type == 'on') { 
-            element.style.height = 'fit-content'; 
-            element.style.minHeight = 'fit-content'; 
-        }  
-        if (element.innerText == '' && type == 'off') {
-            element.style.height = element.dataset.recipeekOriginalHeight
-            element.style.minHeight = element.dataset.recipeekOriginalMinHeight 
-        }
-    }
-}

@@ -6,17 +6,15 @@
         <link rel="stylesheet" href="popup.css"> 
         <script src='bootstrap.bundle.min.js'></script> 
         <script src="popup.js" defer></script>
-        <!-- TODO -->
-        <script src="options.js" defer></script>
     </head>
 
     <body>
         <!-- BUTTONS -->
         <div id="display-section" class="buttons">
+            <button type="button" class="btn btn-primary btn-message display" value="reset">Reset</button>
             <div id="button-section" class="btn-group" role="group" aria-label="Basic example">
-                <button type="button" class="btn btn-primary" id="zoom-in">Zoom In</button>
-                <button type="button" class="btn btn-primary" id="reset">Reset</button>
-                <button type="button" class="btn btn-primary" id="zoom-out">Zoom Out</button>
+                <button type="button" class="btn btn-primary btn-message display" value="zoom-in">Show less</button>
+                <button type="button" class="btn btn-primary btn-message display" value="zoom-out">Show more</button>
             </div>
             <br>
             
@@ -26,43 +24,56 @@
             </div>
             <br>
 
-            <!-- FOCUS TYPE -->
-            <div id="focus-type" class="form-check form-check-inline">
-                <input type="radio" class="form-check-input" name="toggle" id="single-focus" value="focus1" autocomplete="off" checked>
-                <label class="form-check-label" for="single-focus">Single Focus</label>
-              
-                <input type="radio" class=form-check-input" name="toggle" id="multi-focus" value="focus2" autocomplete="off">
-                <label class="form-check-label" for="multi-focus">Multi Focus</label>
+            <div id="actions2">
+                <button type="button" class="btn btn-primary btn-message" value="print">Print</button>
             </div>
+            <br>
         </div>
         <br>
 
         <!-- INFO -->
         <div id="info" class="info"></div>
-        <br>
         <hr>
+
+        <!-- TODO -->
+        <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#options-collapse" aria-expanded="false" aria-controls="collapseExample">
+            OPTIONS
+        </button>
+        <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#feedback-collapse" aria-expanded="false" aria-controls="collapseExample">
+            FEEDBACK
+        </button>
+
+        <!-- OPTIONS -->
+        <div class="collapse" id="options-collapse">
+            <div class="card card-body">
+                <div id="recipe-display" class="radio-group">
+                    <div class="form-check">
+                        <input class="form-check-input radio" type="radio" name="recipe-display" id="section" value="focus1" checked>
+                        <label class="form-check-label" for="section">Show entire section</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input radio" type="radio" name="recipe-display" id="lists" value="focus2">
+                        <label class="form-check-label" for="lists">Show only Ingredients and Instructions</label>
+                    </div>
+                </div>
+                <br>
+                <div class="form-check form-switch">
+                    <input class="form-check-input checkbox" type="checkbox" role="switch" name="images" value="images">
+                    <label class="form-check-label" for="images">Hide Images</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input checkbox" type="checkbox" role="switch" name="links" value="links">
+                    <label class="form-check-label" for="links">Hide Links</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input checkbox" type="checkbox" role="switch" name="compact" value="min-height">
+                    <label class="form-check-label" for="compact">Compact Display</label>
+                </div>
+            </div>
+        </div>
        
         <!-- FEEDBACK -->
         <div id="feedback-section" class="feedback">
-            <p>
-                <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#feedback-collapse" aria-expanded="false" aria-controls="collapseExample">
-                    FEEDBACK
-                </button>
-
-                <!-- TODO -->
-                <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#options-collapse" aria-expanded="false" aria-controls="collapseExample">
-                    OPTIONS
-                </button>
-                <!-- OPTIONS.HTML -->
-                <button class="btn btn-primary" type="button" aria-expanded="false" id='options' style="display: none;">
-                    OPTIONS
-                </button>
-                <!-- OPTIONS.HTML -->
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" name="checkbox" id="displays" value="min-height" unchecked>
-                    <label class="form-check-label" for="images">DISPLAY</label>
-                </div>
-            </p>
             <div class="collapse" id="feedback-collapse">
                 <div class="card card-body">
                 
@@ -88,7 +99,7 @@
                                     Are you sure every list is correct?
                                 </div>
                                 <div class="modal-footer">
-                                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="save">Yes</button>
+                                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" value="save">Yes</button>
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Check again</button>
                                 </div>
                             </div>
@@ -113,7 +124,7 @@
                                     Are you sure all the lists are wrong?
                                 </div>
                                 <div class="modal-footer">
-                                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="wrong">Yes</button>
+                                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" value="wrong">Yes</button>
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Check again</button>
                                 </div>
                             </div>
@@ -123,39 +134,9 @@
                         
                     <h6>
                         When you're tired of checking recipes:
-                        <button type="button" class="btn btn-outline-primary" id="feedback-show">SHOW FEEDBACK</button>
-                        <button type="button" class="btn btn-outline-primary" id="feedback-reset">RESET FEEDBACK</button>
+                        <button type="button" class="btn btn-outline-primary" value="feedback-show">SHOW FEEDBACK</button>
+                        <button type="button" class="btn btn-outline-primary" value="feedback-reset">RESET FEEDBACK</button>
                     </h6>
-                    </div>
-                </div>
-            </div>
-
-
-            <!-- OPTIONS TODO -->
-            <div class="collapse" id="options-collapse">
-                <div class="card card-body">
-                    <div id="recipe-display" class="radio-group">
-                        <div class="form-check">
-                            <input class="form-check-input radio" type="radio" name="recipe-display" id="section">
-                            <label class="form-check-label" for="section">Show entire section</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input radio" type="radio" name="recipe-display" id="lists">
-                            <label class="form-check-label" for="lists">Show only Ingredients and Instructions</label>
-                        </div>
-                    </div>
-                    <br>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input checkbox" type="checkbox" role="switch" id="images">
-                        <label class="form-check-label" for="images">Hide Images</label>
-                    </div>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input checkbox" type="checkbox" role="switch" id="links">
-                        <label class="form-check-label" for="links">Hide Links</label>
-                    </div>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input checkbox" type="checkbox" role="switch" id="pretty">
-                        <label class="form-check-label" for="pretty">Pretty Display</label>
                     </div>
                 </div>
             </div>

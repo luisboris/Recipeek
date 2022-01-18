@@ -16,7 +16,6 @@
         "unlimitedStorage", 
         "declarativeNetRequest"
     ],
-    "options_page": "options.html",
     "background": {
         "page": "background.html",
         "persistent": false

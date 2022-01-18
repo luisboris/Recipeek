@@ -1,22 +1,24 @@
 //GLOBAL VARIABLES 
-const optionsURL = chrome.runtime.getURL("options.html");   
+const mainURL = chrome.runtime.getURL("main.html");   
 const info = document.getElementById('info')
 const buttons = document.getElementById('display-section')
 const focus_type = document.getElementsByName('focus-type')
 const recipes_radios = document.getElementById('recipes-radio')
 let length = 0      // number of Recipes found
-let has_results = false
+let has_results = undefined
 let tabId = null
 let options = undefined
 let page_title = ''
 
 
 // get the active tab (PAGE requested) and user's OPTIONS
-chrome.tabs.query({ active: true, currentWindow: true }, async (tab)=> {
-    tabId = await tab[0].id
+chrome.tabs.query({ active: true, currentWindow: true }, (tab)=> {
+    tabId = tab[0].id
     
-    chrome.storage.sync.get('options', async (data)=> {
-        options = await data.options
+    chrome.storage.sync.get('options', (data)=> {
+        options = data.options
+
+        setOptions()
         
         // check if PAGE.js aleady loaded 
         messageScript(tabId, 'you there?');
@@ -26,42 +28,53 @@ chrome.tabs.query({ active: true, currentWindow: true }, async (tab)=> {
 
         // BUTTONS
         for (let button of document.getElementsByTagName('button')) {
-            // only for BUTTONS with id - IN DEVELOPMENT MODE
-            if (button.id == '') { continue }
-
-            button.addEventListener('click', ()=>  { 
-                if (button.id == 'options') { optionsTab(); return }
-                if (button.id == 'reset') { reset() }   
-                messageScript(tabId, button.id) 
-            });
+            button.addEventListener('click', (b)=>  { handleButtons(b) });
         }
 
         // RADIOS
-        for (let radio of document.getElementsByName('toggle')) { 
-            radio.addEventListener('change', (r)=> handleRadios(r) );
+        for (let radio of document.getElementsByClassName('radio')) { 
+            radio.addEventListener('change', (r)=> handleRadios(r))
         }
 
         // CHECKBOXES
-        for (let checkbox of document.getElementsByName('checkbox')) { 
-            checkbox.addEventListener('change', (box)=> handleCheckboxes(box) );
+        for (let checkbox of document.getElementsByClassName('checkbox')) { 
+            checkbox.addEventListener('change', (box)=> handleCheckboxes(box));
         }
     });
 });
 
 
 ////// FUNCTIONS
-function messageScript(tabId, message, content=null) {
+function setOptions() {
+    // get user's preferences
+    chrome.storage.sync.get('options', (data)=> {
+        let options = data.options
+    
+        for (let check of document.getElementsByClassName('checkbox')) {
+            options[check.name] == 'on' ? check.checked = true : check.checked = false
+        }
+    
+        for (let group of document.getElementsByClassName('radio-group')) {
+            let choice = options[group.id]
+            for (let radio of group.getElementsByClassName('radio')) {
+                radio.id == choice ? radio.checked = true : radio.checked = false
+            }
+        }
+    });
+}
+
+function messageScript(tabId, message=null, parameter=null, choice=null) {
     /*
     Sends a message to PAGE.js
-    A) POPUP and SCRIPT both already running
+    A) POPUP and SCRIPT both already running -> just send Message
     B) POPUP just opened, SCRIPT not running -> run SCRIPT (B2: URL not accesible) 
     C) POPUP just opened, SCRIPT running -> create POPUP BUTTONS
     */
     if (has_results == true) {                                                  // A
-        chrome.tabs.sendMessage(tabId, { message, content }); 
+        chrome.tabs.sendMessage(tabId, { message, parameter, choice }, (response)=> { return response }); 
     }
     else {
-        chrome.tabs.sendMessage(tabId, { message, content }, (response)=> { 
+        chrome.tabs.sendMessage(tabId, { message, parameter, choice }, (response)=> { 
             if (chrome.runtime.lastError !== undefined) {                       // B
                 displayStatus(true)
                 chrome.tabs.executeScript({ file: 'page.js' }, ()=> {
@@ -73,7 +86,6 @@ function messageScript(tabId, message, content=null) {
             else {                                                              // C
                 buttons.style.display = 'block'
                 createRecipeRadios(response.length)
-                createFeedbackRadios(response.length)
                 has_results = true 
             }
         });
@@ -86,10 +98,10 @@ function listenToScript(request) {
             has_results = true;
             info.innerText = ''
             buttons.style.display = 'block'
-            createRecipeRadios(request.length)
-            createFeedbackRadios(request.length)
+            createRecipeRadios(request.lists)
             break
-        case 'no results :(':
+        case 'results undefined':
+        case 'no recipe found':
             has_results = false;
             displayStatus(false)
             break
@@ -100,6 +112,9 @@ function listenToScript(request) {
 }
 
 function reset() {
+    /*
+    Uncheck every RECIPE selector Radio
+    */
     for (let radio of document.getElementsByName('toggle')) { radio.checked = false }
 }
 
@@ -111,23 +126,48 @@ function displayStatus(load) {
         '<strong>NO RECIPE FOUND :(</strong>'
 }
 
-function handleRadios() {
-    /*
-    TODOsend an array of strings with each value (recipe + number + hide/show)
-    */
-    for (let radio of document.getElementsByName('toggle')) {
-        let message = radio.value.match(/[a-zA-Z.]+/)[0]
-        let content = radio.value.match(/[^a-zA-Z.]+/)[0] || null
-        if (radio.checked) { console.log(message, content); messageScript(tabId, message, content) }
+function handleButtons(button) {
+    let message = button.target.classList.contains('display') ? 'display' : null
+
+    if (button.target.value == 'reset') { reset() }  
+    if (button.target.classList.contains('btn-message')) {
+        messageScript(tabId, message, parameter = button.target.value) 
     }
 }
 
-function handleCheckboxes(checkbox) {
-    let content = checkbox.target.checked ? 'on' : 'off'
-    messageScript(tabId, checkbox.target.value, content)
+function handleRadios(radio) {
+    let message = radio.target.classList.contains('display') ? 'display' : null
+    let parameter = radio.target.value.match(/[a-zA-Z.]+/)[0]
+    let choice = radio.target.value.match(/[^a-zA-Z.]+/)[0] || null
+
+    chrome.storage.sync.get('options', (data)=> {
+        let options = data.options
+        options[parameter] = choice
+
+        info.innerText = options[parameter]
+
+        chrome.storage.sync.set({ options }, ()=> {
+            messageScript(tabId, message, parameter, choice)
+        })
+    });
 }
 
-function createRecipeRadios(length) {
+function handleCheckboxes(checkbox) {
+    let message = checkbox.target.classList.contains('display') ? 'display' : null
+    let parameter = checkbox.target.value 
+    let choice = checkbox.target.checked ? 'on' : 'off'
+
+    chrome.storage.sync.get('options', (data)=> {
+        let options = data.options
+        options[parameter] = choice
+
+        chrome.storage.sync.set({ options }, ()=> {
+            messageScript(tabId, message, parameter, choice)
+        })
+    });
+}
+
+function createRecipeRadios(lists=true) {
     /*
     TODO
     Create a radio with label for one RECIPE to display and another one to display all of them
@@ -136,8 +176,10 @@ function createRecipeRadios(length) {
     recipes_radios.innerHTML = ''
 
     createRadio(0, 'recipes', `Recipe`, recipes_radios)
-    createRadio(0, 'recipes.ing', 'Ingredients', recipes_radios)
-    createRadio(0, 'recipes.meth', 'Instructions', recipes_radios)
+    if (lists) {
+        createRadio(0, 'recipes.ing', 'Ingredients', recipes_radios)
+        createRadio(0, 'recipes.meth', 'Instructions', recipes_radios)
+    }
 }
 
 function createRecipesRadios(length) {
@@ -171,7 +213,7 @@ function createRecipesRadios(length) {
         recipes_radios.appendChild(checkbox)
         recipes_radios.appendChild(label)
 
-        checkbox.addEventListener('change', ()=> { handleRadios() });
+        checkbox.addEventListener('change', (r)=> { handleRadios(r) });
     }
 }
 
@@ -195,7 +237,7 @@ function createRadio(index, value, text, parent) {
     checkbox.setAttribute('type', 'radio')
     checkbox.setAttribute('name', 'toggle')
     checkbox.setAttribute('value', `${value}${index}`)
-    checkbox.classList.add('btn-check')
+    checkbox.classList.add('btn-check', 'radio', 'btn-message', 'display')
     checkbox.setAttribute('id', `btn${value}${index}`)
     checkbox.setAttribute('autocomplete', 'off')
 
@@ -207,16 +249,9 @@ function createRadio(index, value, text, parent) {
     parent.appendChild(checkbox)
     parent.appendChild(label)
 
-    checkbox.addEventListener('change', ()=> { handleRadios() });
+    checkbox.addEventListener('change', (r)=> { handleRadios(r) });
 }
 
-function optionsTab() {
-    chrome.tabs.query({ url: optionsURL }, tabs=> {
-        
-        // OPTIONS.html already opened
-        if (tabs[0]) { chrome.tabs.update(tabs[0].id, {active: true}) }
-        
-        // create tab for OPTION.html
-        else { chrome.tabs.create({ url : optionsURL, active: true }) }
-    });
+function createMainTab() {
+    chrome.tabs.create({ url: mainURL, active: true })
 }

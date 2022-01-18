@@ -48,12 +48,18 @@ chrome.runtime.onMessage.addListener( async (request)=> {
             // PREDICTIONS
             let ing_prediction = await predict(ing_vectors, ING_SAVED_MODEL)
             let meth_prediction = await predict(meth_vectors, METH_SAVED_MODEL)
-            let ing_results = [], meth_results = []
+            let ing_results = [], meth_results = [], all_results = []
             for (let i = 0; i < lines.length; i++) {    // save lines with positive predictions
-                if (ing_prediction[i][0] < ing_prediction[i][1]) { ing_results.push(lines[i]) }
-                if (meth_prediction[i][0] < meth_prediction[i][1]) { meth_results.push(lines[i]) }
+                if (ing_prediction[i][0] < ing_prediction[i][1]) { 
+                    ing_results.push(lines[i]) 
+                    all_results.push(lines[i])
+                }
+                if (meth_prediction[i][0] < meth_prediction[i][1]) { 
+                    meth_results.push(lines[i]) 
+                    if (!all_results.includes(lines[i])) { all_results.push(lines[i]) }
+                }
             }
-            let results = [ing_results, meth_results]
+            let results = (all_results.length > 0) ? [ing_results, meth_results, all_results] : undefined
            
             const m2 = Date.now()
             
