@@ -1,5 +1,3 @@
-- until 'pick' button hasn't been clicked, other buttons can't be clicked
-
 - pages without recipes
 
 - DOMContent loaded???
@@ -7,8 +5,6 @@
 - list of saved urls ()
 
 - page title
-
-- print
 
 - ensure min padding
 
@@ -22,7 +18,8 @@
 
 - OPTIONS PAGE:
     - go to recipe vs. show only recipe
-    - focus type
+
+- ShadowRoot
 
 ------------------
 https://www.bakingmad.com/recipes/wholemeal-italian-mushroom-pesto-and-artichoke-calzone

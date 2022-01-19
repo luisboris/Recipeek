@@ -63,12 +63,34 @@ let display = {
     'focus': 'single',                                      // current type of Display (entire SECTION or just LISTS)
     get branch() { return getBranch(this.focused).branch }  // BRANCHES of all NODES in display
 }
-let images = [], empty = []                                 // Elements not to change in display actions
+                                
+let images = []
+for (let element of document.body.querySelectorAll('IMG', 'img', 'FIGURE', 'figure', 'PICTURE', 'picture', 'SVG', 'svg')) {
+    // find last ancestor Element with no Text Content
+    let container = element
+    while (container.parentNode.innerText == '') { container = container.parentNode }
+    images.push(container) 
+}
+
+let ads = []
 for (let element of document.body.querySelectorAll('*')) {
     let tags = ['IMG', 'img', 'FIGURE', 'figure', 'PICTURE', 'picture', 'SVG', 'svg']
-    if (tags.includes(element.tagName)) { images.push(element) }
-    else if (element.innerText == '') { empty.push(element) }
+    if (tags.includes(element.tagName)) { 
+        // find last ancestor Element with no Text Content
+        let container = element
+        while (container.parentNode.innerText == '') { container = container.parentNode }
+        images.push(container) 
+    }
 }
+let empties = function() {
+    let empty = []
+    for (let element of document.body.querySelectorAll('*')) {
+        if (element.innerText == '') { empty.push(element) }
+    }
+    return empty
+}
+
+
 
 
 
@@ -102,13 +124,13 @@ function main() {
     // set how to display page based on user's preferences
     setDisplay()
 
+    const m3 = Date.now()
+
     // manage BUTTONS from POPUP
     chrome.runtime.onMessage.addListener((request, sender, sendResponse)=> {
         if (has_results == false) { return }
 
         console.log('MESSAGE:', request);
-
-        if(request.message == 'display') { updateDisplay() }
 
         if (request.parameter == 'reset') { reset() }
         if (request.parameter == 'zoom-out') { zoomOut() }
@@ -119,17 +141,16 @@ function main() {
 
         if (request.parameter == 'print') { window.print() } 
 
+        let branch = display.branch
         if (request.parameter == 'focus') { recipeDisplay(request.choice) }
-        if (request.parameter == 'images') { images.forEach(img => toggleImages(img, request.choice)) }
+        if (request.parameter == 'images') { console.log('number of IMAGES:', images); images.forEach(img => toggleImages(img, request.choice, branch)) }
         //if (request.parameter == 'links') { recipeDisplay(request.choice) }
-        if (request.parameter == 'min-height') { empty.forEach(el => heightDisplay(el, request.choice)) }
+        if (request.parameter == 'compact') { empties().forEach(el => heightDisplay(el, request.choice)) }
 
         // IN-DEVELOPMENT MODE - FEEDBACK
         if (request.parameter == 'save') { saveErrors() }
         if (request.parameter == 'feedback-show') { displayFeedback() }
         if (request.parameter == 'feedback-reset') { resetFeedback() }
-
-        //unchangedDisplay()
     });
 }
 
@@ -217,7 +238,7 @@ function processResults(content) {
     messagePopup('results :)', false, 0, lists)
 
     const m2 = Date.now()
-    console.log('TIMES:', (m2-start)/1000, (m2-m1)/1000)
+    console.log('TIMES:', (m2-start)/1000, (m1-m3)/1000, (m2-m1)/1000)
 }
 
 function findListNode(results, type=undefined) {   
@@ -604,54 +625,8 @@ function messagePopup(message, error=false, length=0, lists=true) {
     if (error) { throw new Error(message) }
 }
 
-function setDisplay() {
-    chrome.storage.sync.get('options', data=> {
-        let options = data.options
-        
-        // type of RECIPE display
-        options['recipe-display'] == 'lists' ? display.focus = 'multi' : display.focus = 'single'
-
-        // hide/show IMAGES, LINKS, etc.
-        for (let element of document.body.querySelectorAll('*')) { 
-            element.dataset.recipeekOriginalDisplay = element.style.display;
-            element.dataset.recipeekOriginalHeight = element.style.height
-            element.dataset.recipeekOriginaMinHeight = element.style.minHeight
-            
-            if (images.includes(element)) { toggleImages(element, options.images) }
-            else if (empty.includes(element)) { heightDisplay(element, options.minHeight) }
-        }
-    });
-}
-
-function updateDisplay() {
-    chrome.storage.sync.get('options', data=> {
-
-        console.log(data.options);
-
-        let options = data.options
-        let img_choice = options.images
-        let height_choice = options.minHeight
-
-        for (let element of document.body.querySelectorAll('*')) {
-            if (!display.branch.includes(element)) { 
-                element.style.display = 'none' 
-            }
-            else if (images.includes(element) && img_choice == 'on') { 
-                toggleImages(element)
-            }
-            else if (element.innerText == '') {
-                heightDisplay(element, height_choice)
-            }
-            else { 
-                element.style.display = element.dataset.recipeekOriginalDisplay 
-            }
-        }
-    });
-}
-
 
 ////// ACTIONS
-
 function focusNode(recipes) {
     /*
     Given an array of RECIPES, get the BRANCHES of each of their LISTS BRANCH and hide all elements outside of them
@@ -680,9 +655,7 @@ function focusNode(recipes) {
 function focusList(n, list) {
     display.type = list
     display.focused = [recipes[n][list]]
-
     updateDisplay()
-
 }
 
 function reset() {
@@ -794,6 +767,52 @@ function toggleRecipes(n, Focus=true) {
 }
 
 ////// OPTIONS
+function setDisplay() {
+    chrome.storage.sync.get('options', data=> {
+        let options = data.options
+        let branch = display.branch
+        
+        // type of RECIPE display
+        options['focus'] == '1' ? display.focus = 'single' : display.focus = 'multi'
+
+        // hide/show IMAGES, LINKS, etc.
+        for (let element of document.body.querySelectorAll('*')) { 
+            element.dataset.recipeekOriginalDisplay = window.getComputedStyle(element).display;
+            element.dataset.recipeekOriginalHeight = window.getComputedStyle(element).height
+            element.dataset.recipeekOriginalMinHeight = window.getComputedStyle(element).minHeight
+            
+            if (images.includes(element)) { toggleImages(element, options.images, branch) }
+            else if (empties().includes(element)) { heightDisplay(element, options.compact) }
+        }
+    });
+}
+
+function updateDisplay() {
+    chrome.storage.sync.get('options', data=> {
+
+        console.log(data.options);
+        console.log(display.branch);
+        console.log('number of IMAGES:', images);
+
+        let options = data.options
+        let branch = display.branch
+
+        for (let element of document.body.querySelectorAll('*')) {
+            if (!branch.includes(element)) { 
+                element.style.display = 'none' 
+            }
+            else if (images.includes(element)) { 
+                toggleImages(element, options.images, branch)
+            }
+            else if (element.innerText == '') {
+                heightDisplay(element, options.compact)
+            }
+            else { 
+                element.style.display = element.dataset.recipeekOriginalDisplay 
+            }
+        }
+    });
+}
 function recipeDisplay(type) {
     /*
     TODO
@@ -817,9 +836,9 @@ function heightDisplay(element, choice) {
     }
 }
 
-function toggleImages(image, choice) {
-        if (choice == 'on' || !display.branch.includes(image)) { image.style.display = 'none' }
-        else { image.style.display = image.dataset.recipeekOriginalDisplay }
+function toggleImages(image, choice, branch) {
+    if (choice == 'on' || !branch.includes(image)) { image.style.display = 'none' }
+    else { image.style.display = image.dataset.recipeekOriginalDisplay }
 }
 
 

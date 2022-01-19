@@ -11,7 +11,7 @@ chrome.runtime.onInstalled.addListener( () => {
 
 	// set default options
 	chrome.storage.sync.get('options', (data)=> {
-		let options = data.options || { 'images': 'off', 'links': 'off', 'pretty': 'off', 'recipe-display': 'section' } 
+		let options = data.options || { 'images': 'off', 'compact': 'off', 'focus': '1' } 
 		chrome.storage.sync.set({ options })
 	});
 

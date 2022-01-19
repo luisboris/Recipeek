@@ -21,10 +21,10 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tab)=> {
         setOptions()
         
         // check if PAGE.js aleady loaded 
-        messageScript(tabId, 'you there?');
+        messageToScript(tabId, 'you there?');
 
         // process messages from PAGE.js
-        chrome.runtime.onMessage.addListener((request)=> { listenToScript(request) });
+        chrome.runtime.onMessage.addListener((request)=> { messageFromScript(request) });
 
         // BUTTONS
         for (let button of document.getElementsByTagName('button')) {
@@ -51,7 +51,7 @@ function setOptions() {
         let options = data.options
     
         for (let check of document.getElementsByClassName('checkbox')) {
-            options[check.name] == 'on' ? check.checked = true : check.checked = false
+            options[check.value] == 'on' ? check.checked = true : check.checked = false
         }
     
         for (let group of document.getElementsByClassName('radio-group')) {
@@ -63,7 +63,7 @@ function setOptions() {
     });
 }
 
-function messageScript(tabId, message=null, parameter=null, choice=null) {
+function messageToScript(tabId, message=null, parameter=null, choice=null) {
     /*
     Sends a message to PAGE.js
     A) POPUP and SCRIPT both already running -> just send Message
@@ -71,7 +71,7 @@ function messageScript(tabId, message=null, parameter=null, choice=null) {
     C) POPUP just opened, SCRIPT running -> create POPUP BUTTONS
     */
     if (has_results == true) {                                                  // A
-        chrome.tabs.sendMessage(tabId, { message, parameter, choice }, (response)=> { return response }); 
+        chrome.tabs.sendMessage(tabId, { message, parameter, choice }); 
     }
     else {
         chrome.tabs.sendMessage(tabId, { message, parameter, choice }, (response)=> { 
@@ -92,7 +92,7 @@ function messageScript(tabId, message=null, parameter=null, choice=null) {
     }
 }
 
-function listenToScript(request) {
+function messageFromScript(request) {
     switch (request.message) {
         case 'results :)': 
             has_results = true;
@@ -131,7 +131,7 @@ function handleButtons(button) {
 
     if (button.target.value == 'reset') { reset() }  
     if (button.target.classList.contains('btn-message')) {
-        messageScript(tabId, message, parameter = button.target.value) 
+        messageToScript(tabId, message, parameter = button.target.value) 
     }
 }
 
@@ -142,12 +142,10 @@ function handleRadios(radio) {
 
     chrome.storage.sync.get('options', (data)=> {
         let options = data.options
-        options[parameter] = choice
-
-        info.innerText = options[parameter]
+        if (radio.target.classList.contains('options')) { options[parameter] = choice }
 
         chrome.storage.sync.set({ options }, ()=> {
-            messageScript(tabId, message, parameter, choice)
+            messageToScript(tabId, message, parameter, choice)
         })
     });
 }
@@ -159,10 +157,10 @@ function handleCheckboxes(checkbox) {
 
     chrome.storage.sync.get('options', (data)=> {
         let options = data.options
-        options[parameter] = choice
+        if (checkbox.target.classList.contains('options')) { options[parameter] = choice }
 
         chrome.storage.sync.set({ options }, ()=> {
-            messageScript(tabId, message, parameter, choice)
+            messageToScript(tabId, message, parameter, choice)
         })
     });
 }
