@@ -25,12 +25,12 @@ const METH_SAVED_MODEL = 'models/saved_model/meth_lines_binary/model.json';
 
 // IN DEVLEOPLMENT
 const red = 'rf'
+let m1, m2
 
 // wait for message from PAGE.js
 chrome.runtime.onMessage.addListener( async (request)=> {
     if (request.message == "innerText") {
-        
-        const m1 = Date.now()
+        m1 = Date.now()/1000
 
         chrome.storage.local.get('tokens', async (lib) => { 
             
@@ -61,12 +61,8 @@ chrome.runtime.onMessage.addListener( async (request)=> {
             }
             let results = (all_results.length > 0) ? [ing_results, meth_results, all_results] : undefined
            
-            const m2 = Date.now()
-            
             // SAVE RESULTS & CALL CONTENT SCRIPT
             sendResults(results, request.url)
-            
-            console.log('TIMES:', (m2-m1)/1000);
         }); 
     }
 });
@@ -82,12 +78,16 @@ function sendResults(results, url) {
             if (url.includes('/#')) { 
                 let valid_url = correctURL(url)
                 chrome.tabs.query({ url: valid_url }, async (tabs2) => {
-                    chrome.tabs.sendMessage(tabs2[0].id, { message: "results", content: results })
+                    m2 = Date.now()/1000; await chrome.tabs.sendMessage(tabs2[0].id, { message: "results", content: results, time:m2 })
+                    console.log('TIMES:', m2-m1);
                 });
             }
             else { chrome.runtime.sendMessage(tabId, { message: "problem with URL"}) }
         }
-        else { chrome.tabs.sendMessage(tabs[0].id, { message: "results", content: results }) }
+        else { 
+            m2 = Date.now()/1000; chrome.tabs.sendMessage(tabs[0].id, { message: "results", content: results, time:m2 }) 
+            console.log('TIMES:', m2-m1);
+        }
     });
 }
 

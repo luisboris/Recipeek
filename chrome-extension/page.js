@@ -1,19 +1,5 @@
-const start = Date.now()
-
-const NUMBERS = '[0-9]+|[\u00BC-\u00BE\u2150-\u215E]|one|two|three|four|five|six|seven|eight|nine|ten|twelve|a dozen|twenty'
-const NUMBER_RE = `(${NUMBERS})([,./-](${NUMBERS}))?`
-const UNIT_RE = 'tsp|teaspoons|teaspoon|tbsp|tb|tablespoons|tablespoon|cups|cup|c|lb|pounds|pound|pd|ounce|ounces|oz|gram|grams|gr|g|kgs|kg|ml|litres|liters|litre|liter|l|fl oz|quarts|quart|gallons|gallon|pints|pint|inch|in|cm|centimeter|centimitre|mm|milimitre|milimiter'
-const STOPWORDS = ['i','me','my','myself','we','our','ours','ourselves','you','your','yours','yourself','yourselves','he','him','his','himself','she','her','hers','herself','it','its','itself','they','them','their','theirs','themselves','what','which','who','whom','this','that','these','those','am','is','are','was','were','be','been','being','have','has','had','having','do','does','did','doing','a','an','the','and','but','if','or','because','as','until','while','of','at','by','for','with','about','against','between','into','through','during','before','after','above','below','to','from','up','down','in','out','on','off','over','under','again','further','then','once','here','there','when','where','why','how','all','any','both','each','few','more','most','other','some','such','no','nor','not','only','own','same','so','than','too','very','s','t','can','will','just','don','should','now']
-const UNWANTED_SYMBOLS = /^[^\w¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]/gm
-const TITLES = {
-    'ing': ['ingredients'],
-    'meth': ['method', 'instructions', 'steps', 'directions']
-}
-
-const PATTERN_N = `^${NUMBER_RE} ?$`                              // number alone
-const PATTERN_N_U = `^${NUMBER_RE}.{0,2}(${UNIT_RE})[^a-zA-Z]*$`  // number+unit alone
-
-const text_elements = Array.from(document.body.querySelectorAll('*')).filter(el=> { return el.innerText != undefined })
+const start = Date.now()/1000
+let m1, m2, m3, m4, mm
 
 // CLASSES
 class Node {
@@ -43,64 +29,94 @@ class Recipe {
 }
 
 // GLOBAL VARIABLES
-let dom_content_loaded = false              // DOM Content loaded
+const NUMBERS = '[0-9]+|[\u00BC-\u00BE\u2150-\u215E]|one|two|three|four|five|six|seven|eight|nine|ten|twelve|a dozen|twenty'
+const NUMBER_RE = `(${NUMBERS})([,./-](${NUMBERS}))?`
+const UNIT_RE = 'tsp|teaspoons|teaspoon|tbsp|tb|tablespoons|tablespoon|cups|cup|c|lb|pounds|pound|pd|ounce|ounces|oz|gram|grams|gr|g|kgs|kg|ml|litres|liters|litre|liter|l|fl oz|quarts|quart|gallons|gallon|pints|pint|inch|in|cm|centimeter|centimitre|mm|milimitre|milimiter'
+const STOPWORDS = ['i','me','my','myself','we','our','ours','ourselves','you','your','yours','yourself','yourselves','he','him','his','himself','she','her','hers','herself','it','its','itself','they','them','their','theirs','themselves','what','which','who','whom','this','that','these','those','am','is','are','was','were','be','been','being','have','has','had','having','do','does','did','doing','a','an','the','and','but','if','or','because','as','until','while','of','at','by','for','with','about','against','between','into','through','during','before','after','above','below','to','from','up','down','in','out','on','off','over','under','again','further','then','once','here','there','when','where','why','how','all','any','both','each','few','more','most','other','some','such','no','nor','not','only','own','same','so','than','too','very','s','t','can','will','just','don','should','now']
+const UNWANTED_SYMBOLS = /^[^\w¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]/gm
+const TITLES = {
+    'ing': ['ingredients'],
+    'meth': ['method', 'instructions', 'steps', 'directions']
+}
+
+const PATTERN_N = `^${NUMBER_RE} ?$`                              // number alone
+const PATTERN_N_U = `^${NUMBER_RE}.{0,2}(${UNIT_RE})[^a-zA-Z]*$`  // number+unit alone
+
+const text_elements = Array.from(document.body.querySelectorAll('*')).filter(el=> { return el.innerText != undefined })
+
 let has_results = false                     // received results from predict.js
 let results = {}                            // lines identified by predict.js
+let nodes = [], recipes = []                // all Node and RECIPE Objects
+let body_node
+let display = {}
+let iframes, images = [], empties
+
+// DEV MODE
 let errors = {                              // false positives and negatives
     'ing': { 'mistakes': [], 'misses': [] }, 
     'meth': { 'mistakes': [], 'misses': [] } 
 }   
 
-const body_node = new Node(document.body)  
-let nodes = []                              // all Node Objects
-let recipes = []                            // all Recipe Objects
 
-let display = {
-    'body': document.body.innerHTML,                        // body of page, without modifications
-    'focused': [body_node],                                 // current NODES in display
-    'type': 'page',                                         // if it's currently displaying the original PAGE, the RECIPE or a single LIST
-    'recipes': [],                                          // current RECIPES in display
-    'focus': 'single',                                      // current type of Display (entire SECTION or just LISTS)
-    get branch() { return getBranch(this.focused).branch }  // BRANCHES of all NODES in display
-}
-                                
-let images = []
-for (let element of document.body.querySelectorAll('IMG', 'img', 'FIGURE', 'figure', 'PICTURE', 'picture', 'SVG', 'svg')) {
-    // find last ancestor Element with no Text Content
-    let container = element
-    while (container.parentNode.innerText == '') { container = container.parentNode }
-    images.push(container) 
-}
+// WHEN DOCUMENT FINISHES LOADING
+loading()
+function loading() {
+    if (document.readyState !== 'complete') { 
+        document.onreadystatechange = ()=> { loading() } 
+    }
+    else {
+        console.log('LOADED!')
+        
+        body_node = new Node(document.body)  
 
-let ads = []
-for (let element of document.body.querySelectorAll('*')) {
-    let tags = ['IMG', 'img', 'FIGURE', 'figure', 'PICTURE', 'picture', 'SVG', 'svg']
-    if (tags.includes(element.tagName)) { 
-        // find last ancestor Element with no Text Content
-        let container = element
-        while (container.parentNode.innerText == '') { container = container.parentNode }
-        images.push(container) 
+        display = {
+            'body': document.body.innerHTML,                        // body of page, without modifications
+            'focused': [body_node],                                 // current NODES in display
+            'type': 'page',                                         // if it's currently displaying the original PAGE, the RECIPE or a single LIST
+            'recipes': [],                                          // current RECIPES in display
+            'focus': 'single',                                      // current type of Display (entire SECTION or just LISTS)
+            get branch() { return getBranch(this.focused).branch }, // BRANCHES of all NODES in display
+            get ads() {}
+        }
+                                        
+        // get IFRAMES dinamically to check for new loads
+        // avoid Elements hidden by app
+        iframes = ()=> { 
+            ads = []
+            let ancestor = findCommonAncestor(display.focused.map(node=>{return node.element}));
+            for (let el of ancestor[0].querySelectorAll('iframe')) {
+                // find last ancestor Element with same Height
+                let container = el
+                while (container.parentNode.offsetHeight === el.offsetHeight) { container = container.parentNode }
+                ads.push(container) 
+            }
+            return ads
+        }
+        for (let el of document.body.querySelectorAll('img, figure, picture')) {
+            // find last ancestor Element with no innerText
+            let container = el
+            while (container.parentNode.innerText == '') { container = container.parentNode }
+            images.push(container) 
+        }
+        empties = ()=> { 
+            let ads = iframes()
+            news = []
+            let ancestor = findCommonAncestor(display.focused.map(node=>{return node.element}));
+            for (let el of ancestor [0].querySelectorAll('*')) {
+                if (el.innerText == '' && !ads.includes(el)) { news.push(el) }
+            }
+            return news
+        }
+console.log(empties());
+        main()
     }
 }
-let empties = function() {
-    let empty = []
-    for (let element of document.body.querySelectorAll('*')) {
-        if (element.innerText == '') { empty.push(element) }
-    }
-    return empty
-}
 
 
-
-
-
-main()
 
 
 //// MAIN FUNCTIONS
 function main() {
-    // check for file loading complete
-    loading()
 
     chrome.runtime.onMessage.addListener((request, sender, sendResponse)=> {
         // confirm this file is loaded (POPUP.js)
@@ -108,7 +124,7 @@ function main() {
             sendResponse({ response: 'yes', length: recipes.length, title: document.title }) 
         }  
         // PROCESS RESULTS when they arrive from PREDICT.js
-        if (request.message == 'results') { processResults(request.content) }       
+        if (request.message == 'results') { mm=request.time; m3 = Date.now()/1000; processResults(request.content) }       
     });
     
 
@@ -119,18 +135,20 @@ function main() {
             content:  document.body.innerText, 
             url: window.location.href
         });
+        m2 = Date.now()/1000
     }
 
     // set how to display page based on user's preferences
     setDisplay()
 
-    const m3 = Date.now()
+    m1 = Date.now()/1000
 
     // manage BUTTONS from POPUP
     chrome.runtime.onMessage.addListener((request, sender, sendResponse)=> {
         if (has_results == false) { return }
 
         console.log('MESSAGE:', request);
+        console.log(iframes());
 
         if (request.parameter == 'reset') { reset() }
         if (request.parameter == 'zoom-out') { zoomOut() }
@@ -143,23 +161,18 @@ function main() {
 
         let branch = display.branch
         if (request.parameter == 'focus') { recipeDisplay(request.choice) }
-        if (request.parameter == 'images') { console.log('number of IMAGES:', images); images.forEach(img => toggleImages(img, request.choice, branch)) }
-        //if (request.parameter == 'links') { recipeDisplay(request.choice) }
-        if (request.parameter == 'compact') { empties().forEach(el => heightDisplay(el, request.choice)) }
+        if (request.parameter == 'images') { images.forEach(img => toggleElement(img, request.choice, branch)) }
+        if (request.parameter == 'ads') { iframes().forEach(ad => toggleElement(ad, request.choice, branch)) }
+        if (request.parameter == 'compact') { 
+            empties().forEach(el => heightDisplay(el, request.choice)) 
+            ensureMinimumMargin(request.choice)
+        }
 
         // IN-DEVELOPMENT MODE - FEEDBACK
         if (request.parameter == 'save') { saveErrors() }
         if (request.parameter == 'feedback-show') { displayFeedback() }
         if (request.parameter == 'feedback-reset') { resetFeedback() }
     });
-}
-
-function loading() {
-    if (document.readyState === 'complete') {
-        dom_content_loaded = true;
-        console.log('LOADED!')
-    }
-    else { document.onreadystatechange = ()=> { loading() } }
 }
 
 function processResults(content) {
@@ -170,7 +183,6 @@ function processResults(content) {
     4. Store these MATCHES in global variables
     6. Send message to POPUP
     */
-    const m1 = Date.now()
 
     if (content == undefined) { messagePopup('results undefined', true) }
 
@@ -237,8 +249,12 @@ function processResults(content) {
     console.log(lists);
     messagePopup('results :)', false, 0, lists)
 
-    const m2 = Date.now()
-    console.log('TIMES:', (m2-start)/1000, (m1-m3)/1000, (m2-m1)/1000)
+    m4 = Date.now()/1000
+    console.log('TIMES: all -', (m4-start))
+    console.log('setting -', (m1-start));
+    console.log('predict.js -', mm-m2)
+    console.log('messaging', (m3-mm));
+    console.log('processResults -', (m4-m3))
 }
 
 function findListNode(results, type=undefined) {   
@@ -662,11 +678,9 @@ function reset() {
     /*
     Reassign original display values
     */
-    
     display.type = 'page'
     display.recipes = []
     display.focused = [body_node]
-    
     updateDisplay()
 }
 
@@ -748,7 +762,7 @@ function zoomOut() {
             }
 
             for (let element of parent_element.querySelectorAll('*')) {
-                element.style.display = element.dataset.recipeekOriginalDisplay
+                element.style.display = element.dataset.recipeekDisplay
             }
         }
         new_focused.push(new Node(parent_element))
@@ -776,13 +790,18 @@ function setDisplay() {
         options['focus'] == '1' ? display.focus = 'single' : display.focus = 'multi'
 
         // hide/show IMAGES, LINKS, etc.
+        ads = iframes()
         for (let element of document.body.querySelectorAll('*')) { 
-            element.dataset.recipeekOriginalDisplay = window.getComputedStyle(element).display;
-            element.dataset.recipeekOriginalHeight = window.getComputedStyle(element).height
-            element.dataset.recipeekOriginalMinHeight = window.getComputedStyle(element).minHeight
+            element.dataset.recipeekDisplay = window.getComputedStyle(element).display;
+            element.dataset.recipeekHeight = window.getComputedStyle(element).height
+            element.dataset.recipeekMinHeight = window.getComputedStyle(element).minHeight
+            element.dataset.recipeekMarginTop = window.getComputedStyle(element).marginTop
+            element.dataset.recipeekPaddingTop = window.getComputedStyle(element).paddingTop
+            element.dataset.recipeekMarginLeft = window.getComputedStyle(element).marginLeft
+            element.dataset.recipeekPaddingLeft = window.getComputedStyle(element).paddingLeft
             
-            if (images.includes(element)) { toggleImages(element, options.images, branch) }
-            else if (empties().includes(element)) { heightDisplay(element, options.compact) }
+            if (images.includes(element)) { toggleElement(element, options.images, branch) }
+            if (ads.includes(element)) { toggleElement(element, options.ads, branch) }
         }
     });
 }
@@ -791,33 +810,41 @@ function updateDisplay() {
     chrome.storage.sync.get('options', data=> {
 
         console.log(data.options);
-        console.log(display.branch);
-        console.log('number of IMAGES:', images);
+        console.log('number of IMAGES:', images.length);
 
         let options = data.options
         let branch = display.branch
+        let ads = iframes()
+
 
         for (let element of document.body.querySelectorAll('*')) {
             if (!branch.includes(element)) { 
                 element.style.display = 'none' 
             }
             else if (images.includes(element)) { 
-                toggleImages(element, options.images, branch)
+                toggleElement(element, options.images, branch)
             }
-            else if (element.innerText == '') {
+            else if (ads.includes(element)) { 
+                toggleElement(element, options.ads, branch)
+            }
+            else if (empties().includes(element)) {
                 heightDisplay(element, options.compact)
             }
             else { 
-                element.style.display = element.dataset.recipeekOriginalDisplay 
+                element.style.display = element.dataset.recipeekDisplay 
             }
         }
+
+        // update margin
+        ensureMinimumMargin(options.compact)
     });
 }
+
 function recipeDisplay(type) {
     /*
     TODO
     */
-   console.log(display.type);
+    console.log(display.type);
     if (type == 1) { display.focus = 'single' }
     else { display.focus = 'multi' }
 
@@ -826,19 +853,77 @@ function recipeDisplay(type) {
 }
 
 function heightDisplay(element, choice) {
+    if (choice == 'off') {
+        element.style.height = element.dataset.recipeekHeight
+        element.style.minHeight = element.dataset.recipeekMinHeight 
+    }
     if (choice == 'on') { 
         element.style.height = 'fit-content'; 
         element.style.minHeight = 'fit-content'; 
-    }  
-    if (choice == 'off') {
-        element.style.height = element.dataset.recipeekOriginalHeight
-        element.style.minHeight = element.dataset.recipeekOriginalMinHeight 
     }
 }
 
-function toggleImages(image, choice, branch) {
-    if (choice == 'on' || !branch.includes(image)) { image.style.display = 'none' }
-    else { image.style.display = image.dataset.recipeekOriginalDisplay }
+function ensureMinimumMargin(choice) {
+    if (choice == 'off') { 
+        for (let el of document.body.querySelectorAll('*')) { 
+            el.style.marginTop = el.dataset.recipeekMarginTop
+            el.style.paddingTop = el.dataset.recipeekPaddingTop
+            el.style.marginLeft = el.dataset.recipeekMarginLeft
+            el.style.paddingLeft = el.dataset.recipeekPaddingLeft
+        }
+        return
+    }
+
+    let box, content;
+    for (let el of document.body.querySelectorAll('*')) { 
+        if (el.offsetHeight == 0 || el.innerText == '' || el.innerText == undefined) { continue }
+        box = content = el    // first Element with content visible
+        break
+    }
+
+    let next = true
+    let i = 0
+    while (next && i < 50) {
+        for (child of content.children) {
+            if (child.innerText === content.innerText) {
+                content = child;
+                next = true
+                break
+            }
+            next = false
+        }
+        i++
+    }
+
+    console.log(content, box)
+
+    box.style.marginTop = '0px'
+    box.style.paddingTop = '0px'
+    content.style.marginTop = '0px'
+    content.style.paddingTop = '0px'
+    if (content.getBoundingClientRect().top < 40) {
+        let n = 30 - content.getBoundingClientRect().top
+        content.style.paddingTop = n + 'px'
+    }
+
+    box.style.marginLeft = '0px'
+    box.style.paddingLeft = '0px'
+    content.style.marginLeft = '0px'
+    content.style.paddingLeft = '0px'
+    if (content.getBoundingClientRect().left < 40) {
+        let n = 30 - content.getBoundingClientRect().left
+        content.style.paddingLeft = n + 'px'
+    }
+}
+
+function toggleElement(element, choice, branch) {
+    if (choice == 'on' || !branch.includes(element)) { 
+        element.style.display = 'none' 
+    }
+    else { 
+        element.style.display = element.dataset.recipeekDisplay 
+        for (let el of element.querySelectorAll('*')) { el.style.display = el.dataset.recipeekDisplay }
+    }
 }
 
 
