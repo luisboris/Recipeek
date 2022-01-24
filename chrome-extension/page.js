@@ -78,13 +78,20 @@ function loading() {
             get branch() { return getBranch(this.focused).branch }, // BRANCHES of all NODES in display
             get ads() {}
         }
-                                        
+                  
+        for (let el of document.body.querySelectorAll('img, figure, picture')) {
+            // find last ancestor Element with no innerText
+            let container = el
+            while (container.parentNode.innerText == '') { container = container.parentNode }
+            images.push(container) 
+        }
         // get IFRAMES dinamically to check for new loads
         // avoid Elements hidden by app
         iframes = ()=> { 
             ads = []
-            let ancestor = findCommonAncestor(display.focused.map(node=>{return node.element}));
-            for (let el of ancestor[0].querySelectorAll('iframe')) {
+            branch = display.branch
+            for (let el of display.branch) {
+                if (!['iframe', 'IFRAME'].includes(el.tagName)) { continue }
                 // find last ancestor Element with same Height
                 let container = el
                 while (container.parentNode.offsetHeight === el.offsetHeight) { container = container.parentNode }
@@ -92,22 +99,15 @@ function loading() {
             }
             return ads
         }
-        for (let el of document.body.querySelectorAll('img, figure, picture')) {
-            // find last ancestor Element with no innerText
-            let container = el
-            while (container.parentNode.innerText == '') { container = container.parentNode }
-            images.push(container) 
-        }
         empties = ()=> { 
             let ads = iframes()
             news = []
-            let ancestor = findCommonAncestor(display.focused.map(node=>{return node.element}));
-            for (let el of ancestor [0].querySelectorAll('*')) {
-                if (el.innerText == '' && !ads.includes(el)) { news.push(el) }
+            for (let el of display.branch) {
+                if (el.innerText == '' && !ads.includes(el) && !images.includes(el)) { news.push(el) }
             }
             return news
         }
-console.log(empties());
+
         main()
     }
 }
@@ -148,7 +148,7 @@ function main() {
         if (has_results == false) { return }
 
         console.log('MESSAGE:', request);
-        console.log(iframes());
+        //console.log(iframes());
 
         if (request.parameter == 'reset') { reset() }
         if (request.parameter == 'zoom-out') { zoomOut() }
@@ -844,7 +844,6 @@ function recipeDisplay(type) {
     /*
     TODO
     */
-    console.log(display.type);
     if (type == 1) { display.focus = 'single' }
     else { display.focus = 'multi' }
 
