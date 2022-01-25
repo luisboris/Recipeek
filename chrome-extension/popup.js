@@ -85,7 +85,7 @@ function messageToScript(tabId, message=null, parameter=null, choice=null) {
             }
             else {                                                              // C
                 buttons.style.display = 'block'
-                createRecipeRadios(response.length)
+                createRecipeRadios(response.lists)
                 has_results = true 
             }
         });

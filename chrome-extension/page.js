@@ -47,6 +47,7 @@ const text_elements = Array.from(document.body.querySelectorAll('*')).filter(el=
 let has_results = false                     // received results from predict.js
 let results = {}                            // lines identified by predict.js
 let nodes = [], recipes = []                // all Node and RECIPE Objects
+let lists                                   // if INGREDIENT and METHOD LISTS were found
 let body_node
 let display = {}
 let iframes, images = [], empties
@@ -121,7 +122,7 @@ function main() {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse)=> {
         // confirm this file is loaded (POPUP.js)
         if (request.message == 'you there?') { 
-            sendResponse({ response: 'yes', length: recipes.length, title: document.title }) 
+            sendResponse({ response: 'yes', length: recipes.length, lists }) 
         }  
         // PROCESS RESULTS when they arrive from PREDICT.js
         if (request.message == 'results') { mm=request.time; m3 = Date.now()/1000; processResults(request.content) }       
@@ -245,8 +246,8 @@ function processResults(content) {
 
     // check if RECIPE Node score is higher than the score of the LISTS Nodes 
     // (which probabily means that it found the RECIPE but didn't find the LISTS correctly)
-    let lists = recipes[0].score >= recipes[0].Node.score
-    console.log(lists);
+    lists = recipes[0].score >= recipes[0].Node.score
+    console.log('RECIPE SCORE >= LISTS SCORE', lists);
     messagePopup('results :)', false, 0, lists)
 
     m4 = Date.now()/1000
@@ -654,8 +655,9 @@ function focusNode(recipes) {
     */
     display.type = 'recipe'
 
-    if (display.focus == 'multi') { display.focused = recipes.map(rec=> { return [rec.ing, rec.meth] }).flat() }
-    if (display.focus == 'single') { display.focused = recipes.map(rec=> { return rec.Node }).flat() }
+    display.focused = display.focus == 'single' || lists == false ?
+        recipes.map(rec=> { return rec.Node }).flat() :
+        recipes.map(rec=> { return [rec.ing, rec.meth] }).flat()
 
     updateDisplay()
 
