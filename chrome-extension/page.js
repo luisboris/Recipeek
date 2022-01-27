@@ -77,9 +77,9 @@ function loading() {
             'recipes': [],                                          // current RECIPES in display
             'focus': 'single',                                      // current type of Display (entire SECTION or just LISTS)
             get branch() { return getBranch(this.focused).branch }, // BRANCHES of all NODES in display
-            get ads() {}
         }
                   
+        // store all IMAGES
         for (let el of document.body.querySelectorAll('img, figure, picture')) {
             // find last ancestor Element with no innerText
             let container = el
@@ -100,6 +100,7 @@ function loading() {
             }
             return ads
         }
+        // Elements with no content
         empties = ()=> { 
             let ads = iframes()
             news = []
@@ -193,7 +194,6 @@ function processResults(content) {
     // SEARCH FOR MATCHES
     let ing_node = findListNode(results.ing, 'ing')
     let meth_node = findListNode(results.meth, 'meth')
-    let recipe_node = findListNode(results.all)
     if (ing_node == null && meth_node == null) { messagePopup('no recipe found', true) }
 
     console.log('FIRST MATCH:::::::::::::::::::::::::::::::'); console.log(ing_node, meth_node, (ing_node.score+meth_node.score)/2);
@@ -233,22 +233,14 @@ function processResults(content) {
 
     //console.log('RECIPES:'); console.log(recipes);
 
-    // store RESULTS - TODO if using MAIN.html
-    has_results = true
-    chrome.storage.local.get('recipes', async (data)=> {
-        let stored_recipes = data.recipes || {}
-        let url = correctURL(window.location.href)
-        stored_recipes[url] = recipes
-
-        await chrome.storage.local.set({ recipes: stored_recipes })
-        //messagePopup('results :)', false, length=recipes.length)
-    });
 
     // check if RECIPE Node score is higher than the score of the LISTS Nodes 
     // (which probabily means that it found the RECIPE but didn't find the LISTS correctly)
     lists = recipes[0].score >= recipes[0].Node.score
     console.log('RECIPE SCORE >= LISTS SCORE', lists);
     messagePopup('results :)', false, 0, lists)
+
+
 
     m4 = Date.now()/1000
     console.log('TIMES: all -', (m4-start))
@@ -646,18 +638,13 @@ function messagePopup(message, error=false, length=0, lists=true) {
 ////// ACTIONS
 function focusNode(recipes) {
     /*
-    Given an array of RECIPES, get the BRANCHES of each of their LISTS BRANCH and hide all elements outside of them
-    Update DISPLAY object
-    */
-    /*
-    Given an array of RECIPES, get each of their BRANCHES and hide all elements outside of them
-    Update DISPLAY object
+    
     */
     display.type = 'recipe'
 
-    display.focused = display.focus == 'single' || lists == false ?
-        recipes.map(rec=> { return rec.Node }).flat() :
-        recipes.map(rec=> { return [rec.ing, rec.meth] }).flat()
+    display.focused = display.focus == 'single' || lists == false 
+        ? recipes.map(rec=> { return rec.Node }).flat()
+        : recipes.map(rec=> { return [rec.ing, rec.meth] }).flat()
 
     updateDisplay()
 
@@ -811,9 +798,6 @@ function setDisplay() {
 function updateDisplay() {
     chrome.storage.sync.get('options', data=> {
 
-        console.log(data.options);
-        console.log('number of IMAGES:', images.length);
-
         let options = data.options
         let branch = display.branch
         let ads = iframes()
@@ -837,7 +821,7 @@ function updateDisplay() {
             }
         }
 
-        // update margin
+        // update margins
         ensureMinimumMargin(options.compact)
     });
 }
@@ -865,6 +849,7 @@ function heightDisplay(element, choice) {
 }
 
 function ensureMinimumMargin(choice) {
+    /**  */
     if (choice == 'off') { 
         for (let el of document.body.querySelectorAll('*')) { 
             el.style.marginTop = el.dataset.recipeekMarginTop
@@ -922,6 +907,7 @@ function toggleElement(element, choice, branch) {
         element.style.display = 'none' 
     }
     else { 
+        // restore original display of Element and its descendants
         element.style.display = element.dataset.recipeekDisplay 
         for (let el of element.querySelectorAll('*')) { el.style.display = el.dataset.recipeekDisplay }
     }
