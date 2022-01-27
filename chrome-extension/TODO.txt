@@ -1,12 +1,8 @@
 - pages without recipes
 
-- DOMContent loaded???
-
 - list of saved urls ()
 
 - page title
-
-- ensure min padding
 
 - other sections (notes, etc.)
 
