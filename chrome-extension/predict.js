@@ -24,7 +24,6 @@ const METH_SAVED_MODEL = 'models/saved_model/meth_lines_binary/model.json';
 
 
 // IN DEVLEOPLMENT
-const red = 'rf'
 let m1, m2
 
 // wait for message from PAGE.js
@@ -59,7 +58,9 @@ chrome.runtime.onMessage.addListener( async (request)=> {
                     if (!all_results.includes(lines[i])) { all_results.push(lines[i]) }
                 }
             }
-            let results = (all_results.length > 0) ? [ing_results, meth_results, all_results] : undefined
+            let results = all_results.length > 0
+                ? [ing_results, meth_results, all_results] 
+                : undefined
            
             // SAVE RESULTS & CALL CONTENT SCRIPT
             sendResults(results, request.url)
@@ -70,9 +71,8 @@ chrome.runtime.onMessage.addListener( async (request)=> {
 
 //// SECONDARY FUNCTIONS
 function sendResults(results, url) {
-    /*
-    Send message to PAGE.js with results after checking for a valid URL
-    */
+    /** Send message to PAGE.js with results after checking for a valid URL */
+
     chrome.tabs.query({ url }, async (tabs) => {
         if (tabs[0] == undefined) {    // invalid URL
             if (url.includes('/#')) { 
@@ -93,16 +93,17 @@ function sendResults(results, url) {
 
 function correctURL(url) {
     /** Delete hashmarks */
-    return url.includes('/#') ? url.replace(/\/#.+/, '/') : url
+    return url.includes('/#') 
+        ? url.replace(/\/#.*/, '/') 
+        : url
 }
 
 function correctLines(text) {
-     /*
-    Divide the text in lines and delete empty lines, doubles spaces and symbols at the beggining of line
+    /** Divide the text in lines and delete empty lines, doubles spaces and symbols at the beggining of line
     Search for list entries which are broken in different lines (e.g: "2\nlemons", "1 cup\nwater")
     and concatenate them in a single line.
-    Return an array with corrected lines
-    */
+    Return an array with corrected lines */
+    
     let lines = text.toLowerCase().replaceAll('\n\n', '\n').replaceAll('  ', ' ').replaceAll(/^[\W]+/gm, '').split('\n')
     let corrected_lines = []
     for (let i = 0; i < lines.length; i++) {
