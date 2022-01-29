@@ -4,27 +4,27 @@ let m1, m2, m3, m4, mm
 // CLASSES
 class Node {
     constructor(element, score=null) {
-        this.element = deepestNode(element);
-        this.score = score;
-        this.text = this.element.innerText;
-        this.lines = correctLines(this.text);
-        this.position = elementPosition(this.element).position;
-        this.deepness = elementPosition(this.element).deepness;
-        this.branch = getBranch([this]).branch;
-        this.trunk = getBranch([this]).trunk;
-        this.parent = this.element.parentNode;
-        this.children = this.element.children;
-        this.descendants = this.element.querySelectorAll('*')
+        this.element = deepestNode(element);                        // HTML Element
+        this.score = score;                                     
+        this.text = this.element.innerText;                         // plain text
+        this.lines = correctLines(this.text);                       // text divided in lines, in an array
+        this.position = elementPosition(this.element).position;     // index of Element from collection of all Elements (from document.body.querySelectorAll('*'))
+        this.deepness = elementPosition(this.element).deepness;     // distance from document.documentElement
+        this.branch = getBranch([this]).branch;                     // all ancestor and descendant HTML Elements
+        this.trunk = getBranch([this]).trunk;                       // all ancestor HTML Elements
+        this.descendants = this.element.querySelectorAll('*')       // all descendant HTML Elements
+        this.parent = this.element.parentNode;                      // parent HTML Element
+        this.children = this.element.children;                      // children HTML Elements
     }
 }
 class Recipe {
     constructor(ingredients, method, index) {
-        this.index = index;
-        this.ing = ingredients;
-        this.meth = method;
-        this.Node = findCommonAncestor(this.ing, this.meth);
-        this.Node.score = getScore(results.all, this.Node.lines);
-        this.score = getScore(results.all, [...this.ing.lines, ...this.meth.lines])
+        this.index = index;                                         // index of Recipe when there are more than 1               
+        this.ing = ingredients;                                     // a Node Object representing the Element which contains the Ingredients List
+        this.meth = method;                                         // a Node Object representing the Element which contains the Method List
+        this.Node = findCommonAncestor(this.ing, this.meth);        // a Node Object representing the nearest Element which contains both Lists
+        this.Node.score = getScore(results.all, this.Node.lines);                       // the Score of the previous Node
+        this.score = getScore(results.all, [...this.ing.lines, ...this.meth.lines])     // the Score of both List Nodes combined
     }
 }
 
@@ -44,19 +44,17 @@ const PATTERN_N_U = `^${NUMBER_RE}.{0,2}(${UNIT_RE})[^a-zA-Z]*$`  // number+unit
 
 const text_elements = Array.from(document.body.querySelectorAll('*')).filter(el=> { return el.innerText != undefined })
 
-let has_results = false                     // received results from predict.js
-let results = {}                            // lines identified by predict.js
-let nodes = [], recipes = []                // all Node and RECIPE Objects
-let lists                                   // if INGREDIENT and METHOD LISTS were found
-let body_node
-let display = {}
-let iframes, images = [], empties
+let has_results = false                     // Boolean -> received results from predict.js or not
+let results = {}                            // Object -> lines identified by predict.js
+let nodes = [], recipes = []                // Array -> all Node and RECIPE Objects
+let lists                                   // Boolean -> if INGREDIENT and METHOD LISTS were found or not
+let body_node                               // Node Object -> represents document.body Element
+let display = {}                            // Object -> various info about how the page is currently being displayed
+let images = []                             // Array -> all Elements containing Images found in page
+let empties                                 // Function -> returns an Array of the HTML Elements with no content currently in display
+let unchanged                               // Function -> returns an Array of HTML Elements that are not to change display properties
 
-// DEV MODE
-let errors = {                              // false positives and negatives
-    'ing': { 'mistakes': [], 'misses': [] }, 
-    'meth': { 'mistakes': [], 'misses': [] } 
-}   
+
 
 
 // WHEN DOCUMENT FINISHES LOADING
@@ -71,45 +69,31 @@ function loading() {
         body_node = new Node(document.body)  
 
         display = {
-            'body': document.body.innerHTML,                        // body of page, without modifications
-            'focused': [body_node],                                 // current NODES in display
-            'type': 'page',                                         // if it's currently displaying the original PAGE, the RECIPE or a single LIST
-            'recipes': [],                                          // current RECIPES in display
-            'focus': 'single',                                      // current type of Display (entire SECTION or just LISTS)
-            get branch() { return getBranch(this.focused).branch }, // BRANCHES of all NODES in display
+            'body': document.body.innerHTML,                          // body of page before modifications
+            'focused': [body_node],                                   // current NODE Objects in display
+            'type': 'page',                                           // if it's currently displaying the original PAGE, the RECIPE or a single LIST
+            'recipes': [],                                            // current RECIPES in display
+            'focus': 'single',                                        // current type of Display (entire SECTION or just LISTS)
+            get branch() { return getBranch(this.focused).branch }    // BRANCHES of all NODES in display
         }
                   
         // store all IMAGES
         for (let el of document.body.querySelectorAll('img, figure, picture')) {
             // find last ancestor Element with no innerText
             let container = el
-            while (container.parentNode.innerText == '') { container = container.parentNode }
             images.push(container) 
-        }
-        // get IFRAMES dinamically to check for new loads
-        // avoid Elements hidden by app
-        iframes = ()=> { 
-            ads = []
-            branch = display.branch
-            for (let el of display.branch) {
-                if (!['iframe', 'IFRAME'].includes(el.tagName)) { continue }
-                // find last ancestor Element with same Height
-                let container = el
-                while (container.parentNode.offsetHeight === el.offsetHeight) { container = container.parentNode }
-                ads.push(container) 
+            while (container.parentNode.innerText == '') { 
+                container = container.parentNode 
+                images.push(container) 
             }
-            return ads
         }
-        // Elements with no content
-        empties = ()=> { 
-            let ads = iframes()
-            news = []
-            for (let el of display.branch) {
-                if (el.innerText == '' && !ads.includes(el) && !images.includes(el)) { news.push(el) }
-            }
-            return news
+        empties = function() { return display.branch.filter(el => { 
+            return el.innerText == '' && !images.includes(el) })
         }
-
+        unchanged = function() {
+            return Array.from(document.body.getElementsByTagName('path')).map(el=> { return [el, el.parentNode]}).flat()
+        }
+        
         main()
     }
 }
@@ -140,7 +124,6 @@ function main() {
         m2 = Date.now()/1000
     }
 
-    // set how to display page based on user's preferences
     setDisplay()
 
     m1 = Date.now()/1000
@@ -150,7 +133,6 @@ function main() {
         if (has_results == false) { return }
 
         console.log('MESSAGE:', request);
-        //console.log(iframes());
 
         if (request.parameter == 'reset') { reset() }
         if (request.parameter == 'zoom-out') { zoomOut() }
@@ -164,10 +146,10 @@ function main() {
         let branch = display.branch
         if (request.parameter == 'focus') { recipeDisplay(request.choice) }
         if (request.parameter == 'images') { images.forEach(img => toggleElement(img, request.choice, branch)) }
-        if (request.parameter == 'ads') { iframes().forEach(ad => toggleElement(ad, request.choice, branch)) }
         if (request.parameter == 'compact') { 
             empties().forEach(el => heightDisplay(el, request.choice)) 
             ensureMinimumMargin(request.choice)
+            console.log(empties())
         }
 
         // IN-DEVELOPMENT MODE - FEEDBACK
@@ -230,7 +212,7 @@ function processResults(content) {
     }
 
     
-
+    has_results = true
     //console.log('RECIPES:'); console.log(recipes);
 
 
@@ -751,7 +733,7 @@ function zoomOut() {
             }
 
             for (let element of parent_element.querySelectorAll('*')) {
-                element.style.display = element.dataset.recipeekDisplay
+                element.style.display = element.dataset.recipeekDisplay || ''
             }
         }
         new_focused.push(new Node(parent_element))
@@ -779,9 +761,10 @@ function setDisplay() {
         options['focus'] == '1' ? display.focus = 'single' : display.focus = 'multi'
 
         // hide/show IMAGES, LINKS, etc.
-        ads = iframes()
         for (let element of document.body.querySelectorAll('*')) { 
-            element.dataset.recipeekDisplay = window.getComputedStyle(element).display;
+            if (unchanged().includes(element)) { continue }
+
+            element.dataset.recipeekDisplay =  window.getComputedStyle(element).display 
             element.dataset.recipeekHeight = window.getComputedStyle(element).height
             element.dataset.recipeekMinHeight = window.getComputedStyle(element).minHeight
             element.dataset.recipeekMarginTop = window.getComputedStyle(element).marginTop
@@ -790,7 +773,6 @@ function setDisplay() {
             element.dataset.recipeekPaddingLeft = window.getComputedStyle(element).paddingLeft
             
             if (images.includes(element)) { toggleElement(element, options.images, branch) }
-            if (ads.includes(element)) { toggleElement(element, options.ads, branch) }
         }
     });
 }
@@ -800,24 +782,21 @@ function updateDisplay() {
 
         let options = data.options
         let branch = display.branch
-        let ads = iframes()
-
 
         for (let element of document.body.querySelectorAll('*')) {
+            if (unchanged().includes(element)) { continue }
+
             if (!branch.includes(element)) { 
                 element.style.display = 'none' 
             }
             else if (images.includes(element)) { 
                 toggleElement(element, options.images, branch)
             }
-            else if (ads.includes(element)) { 
-                toggleElement(element, options.ads, branch)
-            }
             else if (empties().includes(element)) {
                 heightDisplay(element, options.compact)
             }
             else { 
-                element.style.display = element.dataset.recipeekDisplay 
+                element.style.display = element.dataset.recipeekDisplay
             }
         }
 
@@ -845,6 +824,21 @@ function heightDisplay(element, choice) {
     if (choice == 'on') { 
         element.style.height = 'fit-content'; 
         element.style.minHeight = 'fit-content'; 
+    }
+}
+
+function toggleElement(element, choice, branch) {
+    if (choice == 'on' || !branch.includes(element)) { 
+        element.style.display = 'none' 
+    }
+    else { 
+        // restore original display of Element and its descendants
+        element.style.display = element.dataset.recipeekDisplay
+        for (let el of element.querySelectorAll('*')) { 
+            if (unchanged().includes(el)) { continue }
+
+            el.style.display = el.dataset.recipeekDisplay
+        }
     }
 }
 
@@ -902,19 +896,13 @@ function ensureMinimumMargin(choice) {
     }
 }
 
-function toggleElement(element, choice, branch) {
-    if (choice == 'on' || !branch.includes(element)) { 
-        element.style.display = 'none' 
-    }
-    else { 
-        // restore original display of Element and its descendants
-        element.style.display = element.dataset.recipeekDisplay 
-        for (let el of element.querySelectorAll('*')) { el.style.display = el.dataset.recipeekDisplay }
-    }
-}
-
 
 //// IN-DEVELOPMENT MODE FUNCTIONS - FEEDBACK
+let errors = {                              // false positives and negatives
+    'ing': { 'mistakes': [], 'misses': [] }, 
+    'meth': { 'mistakes': [], 'misses': [] } 
+}   
+
 function getErrors() {
     /*
     Check for mismatches between RESULTS and the corresponding MATCH (Node) found for each type (Ingredients and Method)
