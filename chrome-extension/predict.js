@@ -8,23 +8,23 @@ const NUMBER_RE = new RegExp(NUMBER_TEMPLATE, 'g')
 const STOPWORDS = ['i','me','my','myself','we','our','ours','ourselves','you','your','yours','yourself','yourselves','he','him','his','himself','she','her','hers','herself','it','its','itself','they','them','their','theirs','themselves','what','which','who','whom','this','that','these','those','am','is','are','was','were','be','been','being','have','has','had','having','do','does','did','doing','a','an','the','and','but','if','or','because','as','until','while','of','at','by','for','with','about','against','between','into','through','during','before','after','above','below','to','from','up','down','in','out','on','off','over','under','again','further','then','once','here','there','when','where','why','how','all','any','both','each','few','more','most','other','some','such','no','nor','not','only','own','same','so','than','too','very','s','t','can','will','just','don','should','now']
 const PUNCTUATION = /[!"#$%&\'()*+,\\\-.:;<=>?@[\]\^_`{\|}~]/g
 
-const PATTERN_N = `^${NUMBER_TEMPLATE} ?$`                              // number alone
-const PATTERN_N_U = `^${NUMBER_TEMPLATE}.{0,2}(${UNITS})[^a-zA-Z]*$`    // number+unit alone
-const TITLE_PATTERN = '^[a-zA-Z]+\W?$'                                  // line with just 1 word
+const PATTERN_N = `^${NUMBER_TEMPLATE} ?$`                              // single line with only NUMBER
+const PATTERN_N_U = `^${NUMBER_TEMPLATE}.{0,2}(${UNITS})[^a-zA-Z]*$`    // single line with only NUMBER + UNIT
+const TITLE_PATTERN = '^[a-zA-Z]+\W?$'                                  // single line with one word
 const ING_PATTERNS = [
-    `^${NUMBER_TEMPLATE}.?(${UNITS})[^a-zA-Z0-9]{1,2}`,                 // number + unit + text
-    `^${NUMBER_TEMPLATE} .+`                                            // number + text
+    `^${NUMBER_TEMPLATE}.?(${UNITS})[^a-zA-Z0-9]{1,2}`,                 // NUMBER + UNIT + text
+    `^${NUMBER_TEMPLATE} .+`                                            // NUMBER + text
 ]
 const METH_PATTERNS = [ 
-    '^[0-9]+\W{1,3}\w+'                                                 // ordered list numeration
+    '^[0-9]+\W{1,3}\w+'                                                 // Ordered List numeration
 ]
 
+// trained AI Models
 const ING_SAVED_MODEL = 'models/saved_model/ing_lines_binary/model.json';
 const METH_SAVED_MODEL = 'models/saved_model/meth_lines_binary/model.json';
 
 
 // IN DEVLEOPLMENT
-const red = 'rf'
 let m1, m2
 
 // wait for message from PAGE.js
@@ -59,7 +59,9 @@ chrome.runtime.onMessage.addListener( async (request)=> {
                     if (!all_results.includes(lines[i])) { all_results.push(lines[i]) }
                 }
             }
-            let results = (all_results.length > 0) ? [ing_results, meth_results, all_results] : undefined
+            let results = all_results.length > 0
+                ? [ing_results, meth_results, all_results] 
+                : undefined
            
             // SAVE RESULTS & CALL CONTENT SCRIPT
             sendResults(results, request.url)
@@ -70,9 +72,8 @@ chrome.runtime.onMessage.addListener( async (request)=> {
 
 //// SECONDARY FUNCTIONS
 function sendResults(results, url) {
-    /*
-    Send message to PAGE.js with results after checking for a valid URL
-    */
+    /** Send message to PAGE.js with results after checking for a valid URL */
+
     chrome.tabs.query({ url }, async (tabs) => {
         if (tabs[0] == undefined) {    // invalid URL
             if (url.includes('/#')) { 
@@ -93,17 +94,19 @@ function sendResults(results, url) {
 
 function correctURL(url) {
     /** Delete hashmarks */
-    return url.includes('/#') ? url.replace(/\/#.+/, '/') : url
+    return url.includes('/#') 
+        ? url.replace(/\/#.*/, '/') 
+        : url
 }
 
 function correctLines(text) {
-     /*
-    Divide the text in lines and delete empty lines, doubles spaces and symbols at the beggining of line
+    /** Divide the text in lines and delete empty lines, doubles spaces and symbols at the beggining of line
     Search for list entries which are broken in different lines (e.g: "2\nlemons", "1 cup\nwater")
     and concatenate them in a single line.
-    Return an array with corrected lines
-    */
+    Return an array with corrected lines */
+
     let lines = text.toLowerCase().replaceAll('\n\n', '\n').replaceAll('  ', ' ').replaceAll(/^[\W]+/gm, '').split('\n')
+    
     let corrected_lines = []
     for (let i = 0; i < lines.length; i++) {
         // pattern broken in 2 lines: number alone || number+unit alone
@@ -121,15 +124,14 @@ function correctLines(text) {
 
 //// MACHINE LEARNING FUNCTIONS
 function vectorize(lines, tokens) {
-    /* 
-    Create a vector for each sentence
-    [length, score, neighbor_scores(3 before + 3 after), [patterns]] 
-    */
+    /** For each text LINE in the document, get its TOKENS, its SCORE, ands the create a VECTOR with the following values:
+    Length, Score, neighbor Scores (3 before + 3 after) and Patterns matched */
+
     let words = lines.map(line=> getTokens(line))
     let scores = words.map(ww=> getTokensScore(ww, tokens))
 
     let vectors = []
-    let padded_scores = [0, 0, 0, ...scores, 0, 0, 0]
+    let padded_scores = [0, 0, 0, ...scores, 0, 0, 0]   // to avoid errors saving the neighbor Scores of the first and last 3 lines
     for (let i in lines) {
         i = parseInt(i)
         vectors.push([
@@ -148,6 +150,7 @@ function vectorize(lines, tokens) {
 }
 
 function getPatterns(line) {
+    /** For each Pattern, return 1 if LINE matches the Pattern, 0 otherwise */
     return [
         line.match(TITLE_PATTERN) ? 1 : 0,
         line.match(ING_PATTERNS[0]) ? 1 : 0,
@@ -157,53 +160,51 @@ function getPatterns(line) {
 }
 
 function getTokens(line) {
-    /*
-    Get every word in line, remove punctuation and filter stopwords and numbers
-    */
+    /** Get every word in LINE, remove punctuation and filter stopwords and numbers */
+
     let words = nlp.tokenize(line).terms().json().map(o=> o.text);
     let numbers = [...line.matchAll(NUMBER_RE, 'g')].map(m=> m[0])
     
     words.forEach((word, i, array)=> { array[i] = word.replaceAll(PUNCTUATION, '') })
+        .filter((word) => { return !numbers.includes(word) && !STOPWORDS.includes(word)})
     
-    return words.filter((w) => { return !numbers.includes(w) && !STOPWORDS.includes(w)})
+    return words
 }
 
 function getTokensScore(words, tokens) {
-    /*
-    Get the score for a line that is the sum of every token's score divided by the number of words
-    */
-    if (words.length == 0) { return 0 }
-    let score = 0
-    for (let word of words) {
-        if (Object.keys(tokens).includes(word)) {
-            score += tokens[word]
-        }
-    }
+    /** For a given LINE of text, it's Score is the sum of every TOKENS's Score divided by the number of words */
+
+    let token_words = Object.keys(tokens)
+    let score = words.reduce((total, word) => {
+        return token_words.includes(word) 
+            ? total + tokens[word] 
+            : total + 0
+    }, 0)
+
     return score / words.length
 }
 
 function normalize(vectors) {
-    /*
-    Get maximum value of each column
-    Divide values by maximum value, except for binary values
-    */
+    /** Get maximum value of each column.
+    Divide each VECTOR values by their column's maximum value, except for zeros */
+
     let maxs = Array(vectors[0].length)
-    for (let i = 0; i < vectors[0].length; i++) {
+    for (let i = 0; i < maxs.length; i++) {
         maxs[i] = Math.max(...vectors.map(v=> v[i]))
     }
-    for (let vector of vectors) {
-        for (let i = 0; i < vector.length; i++) {
-            if (maxs[i] == 1 || maxs[i] == 0) { continue }
-            vector[i] = vector[i] / maxs[i]
-        }
+
+    for (let i in vectors) {
+        vectors[i] = vectors[i].map((value, j) => { 
+            return maxs[j] == 0 ? value : value / maxs[j]
+        })
     }
+
     return vectors
 }
 
 async function predict(vectors, model_path) {
-    /*
-    Execute previously trained model 
-    */
+    /** Execute previously trained model */
+
     let input = tf.tensor3d([...vectors.flat()], [vectors.length, vectors[0].length, 1])
     
     const model = await tf.loadGraphModel(model_path)
