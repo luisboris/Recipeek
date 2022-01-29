@@ -59,7 +59,9 @@ chrome.runtime.onMessage.addListener( async (request)=> {
                     if (!all_results.includes(lines[i])) { all_results.push(lines[i]) }
                 }
             }
-            let results = (all_results.length > 0) ? [ing_results, meth_results, all_results] : undefined
+            let results = all_results.length > 0
+                ? [ing_results, meth_results, all_results] 
+                : undefined
            
             // SAVE RESULTS & CALL CONTENT SCRIPT
             sendResults(results, request.url)
@@ -92,8 +94,9 @@ function sendResults(results, url) {
 
 function correctURL(url) {
     /** Delete hashmarks */
-
-    return url.includes('/#') ? url.replace(/\/#.+/, '/') : url
+    return url.includes('/#') 
+        ? url.replace(/\/#.*/, '/') 
+        : url
 }
 
 function correctLines(text) {

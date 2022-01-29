@@ -230,7 +230,7 @@ function processResults(content) {
     }
 
     
-
+    has_results = true
     //console.log('RECIPES:'); console.log(recipes);
 
 
