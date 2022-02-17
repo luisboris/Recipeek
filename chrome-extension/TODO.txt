@@ -1,16 +1,10 @@
-- pages without recipes
-
-- list of saved urls ()
-
-- page title
-
 - other sections (notes, etc.)
-
-- SCORE: meth lines: erase the ones wich are in confirmed ing Node
 
 - TRY: copy contents into iframe
 
 - pin icon
+
+- permanent popup
 
 - OPTIONS PAGE:
     - go to recipe vs. show only recipe
@@ -18,14 +12,17 @@
 - ShadowRoot
 
 ------------------
-https://www.bakingmad.com/recipes/wholemeal-italian-mushroom-pesto-and-artichoke-calzone
-- listas ao contrário
 
 https://www.greatbritishchefs.com/recipes/orange-almond-polenta-bundt-cake-recipe
-- listas de ingredients no meio do método
+- listas de ingredients no meio do método . OK
 
 http://upknorth.com/blog/dill-and-salt-cured-salmon
 - only RECIPE no LISTS
+
+https://polentaebaccala.com/2019/07/26/rianata-trapanese/
+https://ceratisitaliankitchen.com/2016/07/08/mazzamurru/
+- list in multiple Elements
+
 ------------------
 
 Recipe Sublists:

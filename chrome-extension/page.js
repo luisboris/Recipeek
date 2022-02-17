@@ -1,20 +1,22 @@
 const start = Date.now()/1000
-let m1, m2, m3, m4, mm
+let mset, mupdate, mpredict, end
+let mnodes, msublists, msub2, mfirst, mmultiple
 
 // CLASSES
-class Node {
-    constructor(element, score=null) {
-        this.element = deepestNode(element);                        // HTML Element
-        this.score = score;                                     
-        this.text = this.element.innerText;                         // plain text
-        this.lines = correctLines(this.text);                       // text divided in lines, in an array
-        this.position = elementPosition(this.element).position;     // index of Element from collection of all Elements (from document.body.querySelectorAll('*'))
-        this.deepness = elementPosition(this.element).deepness;     // distance from document.documentElement
-        this.branch = getBranch([this]).branch;                     // all ancestor and descendant HTML Elements
-        this.trunk = getBranch([this]).trunk;                       // all ancestor HTML Elements
-        this.descendants = this.element.querySelectorAll('*')       // all descendant HTML Elements
-        this.parent = this.element.parentNode;                      // parent HTML Element
-        this.children = this.element.children;                      // children HTML Elements
+class List {
+    constructor(elements, type) {
+        this.type = type;                                                                       // 'ing' or 'meth'
+        this.elements = elements;                                                               // HTML Element
+        this.children = this.elements                                                           // children HTML Elements
+            .reduce((array, el) => [...array, ...Array.from(el.children || el)], []);                 
+        this.branch = getBranch(this.elements).branch;                                          // all ancestor and descendant HTML Elements
+        this.trunk = getBranch(this.elements).trunk;                                            // all ancestor HTML Elements
+        this.text = this.elements                                                               // plain text
+            .reduce((str, el) => `${str}\n${el.innerText}`, '');                         
+        this.lines = correctLines(this.text);                                                   // text divided in lines, in an array
+        this.score = getScore(results[type], this.lines);                        
+        this.position = elementPosition(this.elements[0]).position;                             // index of Element from collection of all Elements (from document.body.querySelectorAll('*'))
+        this.deepness = elementPosition(this.elements[0]).deepness;                             // distance from document.documentElement
     }
 }
 class Recipe {
@@ -22,144 +24,248 @@ class Recipe {
         this.index = index;                                         // index of Recipe when there are more than 1               
         this.ing = ingredients;                                     // a Node Object representing the Element which contains the Ingredients List
         this.meth = method;                                         // a Node Object representing the Element which contains the Method List
-        this.Node = findCommonAncestor(this.ing, this.meth);        // a Node Object representing the nearest Element which contains both Lists
-        this.Node.score = getScore(results.all, this.Node.lines);                       // the Score of the previous Node
-        this.score = getScore(results.all, [...this.ing.lines, ...this.meth.lines])     // the Score of both List Nodes combined
+        if (this.ing && this.meth) {
+            this.hasLists = true;
+            this.lists = [this.ing, this.meth];
+            this.element = findCommonAncestor(this.lists)
+        } else { 
+            this.hasLists = false
+            this.lists = [this.ing || this.meth]
+            this.element = findCommonAncestor(this.lists)
+        }
+        this.descendants = this.element.querySelectorAll('*');      // all descendant HTML Elements
+        this.children = this.element.children;                      // children HTML Elements
+        this.text = this.element.innerText;                         // plain text
+        this.lines = correctLines(this.text);                       // text divided in lines, in an array
+        this.listLines = this.lists
+            .reduce((array, list) => [...array, ...list.lines.filter(line => this.lines.includes(line))], []);
+        this.score = getScore(results.all, this.lines);             // the Score of the previous Node
+        this.listScore = getScore(results.all, this.listLines);     // the Score of both List Nodes combined
     }
 }
 
 // GLOBAL VARIABLES
 const NUMBERS = '[0-9]+|[\u00BC-\u00BE\u2150-\u215E]|one|two|three|four|five|six|seven|eight|nine|ten|twelve|a dozen|twenty'
-const NUMBER_RE = `(${NUMBERS})([,./-](${NUMBERS}))?`
-const UNIT_RE = 'tsp|teaspoons|teaspoon|tbsp|tb|tablespoons|tablespoon|cups|cup|c|lb|pounds|pound|pd|ounce|ounces|oz|gram|grams|gr|g|kgs|kg|ml|litres|liters|litre|liter|l|fl oz|quarts|quart|gallons|gallon|pints|pint|inch|in|cm|centimeter|centimitre|mm|milimitre|milimiter'
-const STOPWORDS = ['i','me','my','myself','we','our','ours','ourselves','you','your','yours','yourself','yourselves','he','him','his','himself','she','her','hers','herself','it','its','itself','they','them','their','theirs','themselves','what','which','who','whom','this','that','these','those','am','is','are','was','were','be','been','being','have','has','had','having','do','does','did','doing','a','an','the','and','but','if','or','because','as','until','while','of','at','by','for','with','about','against','between','into','through','during','before','after','above','below','to','from','up','down','in','out','on','off','over','under','again','further','then','once','here','there','when','where','why','how','all','any','both','each','few','more','most','other','some','such','no','nor','not','only','own','same','so','than','too','very','s','t','can','will','just','don','should','now']
-const UNWANTED_SYMBOLS = /^[^\w¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]/gm
+const NUMBER_TEMPLATE = `(${NUMBERS})(([ ,./-])(${NUMBERS}))?`
+const UNITS = 'tsp|tsps|teaspoons|teaspoon|tbsp|tb|tbsps|tablespoons|tablespoon|cups|cup|c|lb|lbs|pounds|pound|pd|pds|ounce|ounces|oz|gram|grams|gr|g|kilogram|kilograms|kgs|kg|miligram|miligrams|mg|mgs|ml|mls|mililitre|mililiter|mililitres|mililiters|cl|cls|centiliter|centilitre|centiliter|centilitre|dl|dls|decilitre|deciliter|decilitres|deciliters|l|ls|litres|liters|litre|liter|fl oz|quarts|quart|qt|gallons|gallon|pints|pint|inch|inches|in|cm|cms|centimeter|centimetre|centimeters|centimetres|mm|mms|milimitre|milimiter|milimitres|milimiters|large|small|medium|bunch|handfull|pinch|sprinkle'
 const TITLES = {
     'ing': ['ingredients'],
-    'meth': ['method', 'instructions', 'steps', 'directions']
+    'meth': ['procedure', 'preparation', 'method', 'instructions', 'steps', 'directions']
 }
+const PATTERN_N = `^${NUMBER_TEMPLATE} ?$`                              // single line with only NUMBER
+const PATTERN_N_U = `^${NUMBER_TEMPLATE}.{0,2}(${UNITS})[^a-zA-Z]*$`    // single line with only NUMBER + UNIT
+const ING_PATTERNS = [
+    `^${NUMBER_TEMPLATE}.?(${UNITS})[^a-zA-Z0-9]{1,2}`,                 // NUMBER + UNIT + text
+    `^${NUMBER_TEMPLATE} .+`                                            // NUMBER + text
+]
 
-const PATTERN_N = `^${NUMBER_RE} ?$`                              // number alone
-const PATTERN_N_U = `^${NUMBER_RE}.{0,2}(${UNIT_RE})[^a-zA-Z]*$`  // number+unit alone
+let hasRecipe                                   // Boolean -> received results from predict.js or not
+let results                                     // Object -> lines identified by predict.js
+let recipes                                     // Arrays -> all Node and RECIPE Objects
+let recipesInfo = {}
+let display = {                                 // Object -> various info about how the page is currently being displayed
+    
+    'body': document.body,      
+            
+    // current NODE Objects in display
+    'focused': [document.body],                                   
 
-const text_elements = Array.from(document.body.querySelectorAll('*')).filter(el=> { return el.innerText != undefined })
+    // if it's currently displaying the original PAGE, the RECIPE or a single LIST
+    'type': 'page',                                           
 
-let has_results = false                     // Boolean -> received results from predict.js or not
-let results = {}                            // Object -> lines identified by predict.js
-let nodes = [], recipes = []                // Array -> all Node and RECIPE Objects
-let lists                                   // Boolean -> if INGREDIENT and METHOD LISTS were found or not
-let body_node                               // Node Object -> represents document.body Element
-let display = {}                            // Object -> various info about how the page is currently being displayed
-let images = []                             // Array -> all Elements containing Images found in page
-let empties                                 // Function -> returns an Array of the HTML Elements with no content currently in display
-let unchanged                               // Function -> returns an Array of HTML Elements that are not to change display properties
+    // current RECIPES in display
+    'recipes': [],                                            
 
-
-
-
-// WHEN DOCUMENT FINISHES LOADING
-loading()
-function loading() {
-    if (document.readyState !== 'complete') { 
-        document.onreadystatechange = ()=> { loading() } 
-    }
-    else {
-        console.log('LOADED!')
+    // current type of Display (entire SECTION or just LISTS)
+    'focus': 'single',           
+    
+    // DISPLAY settings of every HTML Element (Object)
+    'getIndexes': function() {
+        return Array.from(document.body.querySelectorAll('*')).reduce((indexes, element, i) => {
+            element.dataset.recipeekIndex = i;
+            return Object.assign(indexes, {[i]: element})
+        }, {})
+    },
+    
+    // All HTML Elements that are not to change display properties (Array)
+    'getUnchanged': function() {
+        return Array.from(document.body.querySelectorAll('path, style, script'))
+    },
+    
+    // All HTML Elements containing Images found in page (Object of Arrays)
+    'getImages': function() {
+        let elements = Array.from(document.body.querySelectorAll('*'))
+        .filter(el => 
+            ['image', 'img', 'figure', 'picture'].includes(el.tagName.toLowerCase()) || 
+            ['.jpg', '.png', '.gif', '.bmp'].find(type => typeof el.href === 'string' && el.href.endsWith(type)) ||
+            el.style.backgroundImage !== '');
         
-        body_node = new Node(document.body)  
-
-        display = {
-            'body': document.body.innerHTML,                          // body of page before modifications
-            'focused': [body_node],                                   // current NODE Objects in display
-            'type': 'page',                                           // if it's currently displaying the original PAGE, the RECIPE or a single LIST
-            'recipes': [],                                            // current RECIPES in display
-            'focus': 'single',                                        // current type of Display (entire SECTION or just LISTS)
-            get branch() { return getBranch(this.focused).branch }    // BRANCHES of all NODES in display
-        }
-                  
-        // store all IMAGES
-        for (let el of document.body.querySelectorAll('img, figure, picture')) {
-            // find last ancestor Element with no innerText
-            let container = el
-            images.push(container) 
-            while (container.parentNode.innerText == '') { 
-                container = container.parentNode 
-                images.push(container) 
+        let containers = elements
+        .reduce((images, element) => { 
+            let height = window.getComputedStyle(element).height
+            while (element.parentNode.innerText === '' || window.getComputedStyle(element.parentNode).height === height) { 
+                element = element.parentNode 
             }
-        }
-        empties = function() { return display.branch.filter(el => { 
-            return el.innerText == '' && !images.includes(el) })
-        }
-        unchanged = function() {
-            return Array.from(document.body.getElementsByTagName('path')).map(el=> { return [el, el.parentNode]}).flat()
-        }
+            return [...images, element] 
+        }, [])
+        .filter((el, i, array) => array.indexOf(el) === i);
+
+        let subtree = containers
+        .reduce((subtree, container) => {
+            return [...subtree, ...Array.from(container.querySelectorAll('*'))]
+        }, [])
+        .filter((el, i, array) => array.indexOf(el) === i);
+
+        return { elements, containers, subtree }
+    },
+
+    // All HTML Elements containing Videos found in page (Object of Arrays)
+    'getVideos': function() {
+        let elements = Array.from(document.body.querySelectorAll('*'))
+        .filter(el => 
+            el.tagName.toLowerCase() === 'video' || 
+            Array.from(el.attributes).find(att => att.name.match('src') && att.value.match('youtube.com'))
+        );
         
-        main()
-    }
+        let containers = elements
+        .reduce((videos, element) => { 
+            let height = window.getComputedStyle(element).height
+            while (element.parentNode.innerText === '' || window.getComputedStyle(element.parentNode).height === height) { 
+                element = element.parentNode 
+            }
+            return videos.includes(element) ? videos : [...videos, element] 
+        }, [])
+
+        let subtree = containers
+        .reduce((subtree, container) => {
+            return [...subtree, ...Array.from(container.querySelectorAll('*'))]
+        }, [])
+        .filter((el, i, array) => array.indexOf(el) === i);
+
+        return { elements, containers, subtree }
+    },
+
+    // return an Array of the HTML Elements with no text/image content currently in display
+    get empties() { 
+        return display.branch.filter(el => 
+            el.innerText === '' && 
+            ![...display.images.subtree, ...display.images.containers].includes(el) && 
+            ![...display.videos.subtree, ...display.videos.containers].includes(el) && 
+            el.parentNode.querySelectorAll('svg, a').length === 0
+        )
+    },
+    
+    // return the BRANCHES of all NODES in display (Array)
+    get branch() { return getBranch(this.focused).branch },
 }
 
 
+
+if (document.readyState !== 'complete') { 
+    window.addEventListener('load', () => { main() });
+}
+else { main() }
 
 
 //// MAIN FUNCTIONS
 function main() {
 
-    chrome.runtime.onMessage.addListener((request, sender, sendResponse)=> {
-        // confirm this file is loaded (POPUP.js)
-        if (request.message == 'you there?') { 
-            sendResponse({ response: 'yes', length: recipes.length, lists }) 
-        }  
-        // PROCESS RESULTS when they arrive from PREDICT.js
-        if (request.message == 'results') { mm=request.time; m3 = Date.now()/1000; processResults(request.content) }       
-    });
-    
-
     // send innerText to PREDICT.js
-    if (has_results == false) {
-        chrome.runtime.sendMessage({ 
-            message: "innerText", 
-            content:  document.body.innerText, 
-            url: window.location.href
-        });
-        m2 = Date.now()/1000
-    }
-
-    setDisplay()
-
-    m1 = Date.now()/1000
-
-    // manage BUTTONS from POPUP
-    chrome.runtime.onMessage.addListener((request, sender, sendResponse)=> {
-        if (has_results == false) { return }
-
-        console.log('MESSAGE:', request);
-
-        if (request.parameter == 'reset') { reset() }
-        if (request.parameter == 'zoom-out') { zoomOut() }
-        if (request.parameter == 'zoom-in') { zoomIn() }
-        if (request.parameter == 'recipes') { toggleRecipes(request.choice) }
-        if (request.parameter == 'recipes.ing') { focusList(request.choice, 'ing') }
-        if (request.parameter == 'recipes.meth') { focusList(request.choice, 'meth') }
-
-        if (request.parameter == 'print') { window.print() } 
-
-        let branch = display.branch
-        if (request.parameter == 'focus') { recipeDisplay(request.choice) }
-        if (request.parameter == 'images') { images.forEach(img => toggleElement(img, request.choice, branch)) }
-        if (request.parameter == 'compact') { 
-            empties().forEach(el => heightDisplay(el, request.choice)) 
-            ensureMinimumMargin(request.choice)
-            console.log(empties())
-        }
-
-        // IN-DEVELOPMENT MODE - FEEDBACK
-        if (request.parameter == 'save') { saveErrors() }
-        if (request.parameter == 'feedback-show') { displayFeedback() }
-        if (request.parameter == 'feedback-reset') { resetFeedback() }
+    chrome.runtime.sendMessage({ 
+        message: "innerText", 
+        text:  document.body.innerText, 
+        url: window.location.href
     });
+
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+        
+        // message from POPUP.js when Extension Icon is clicked
+        if (request.message === 'you there?') { 
+            // send Response to confirm this script is loading
+            sendResponse({ response: 'yes' });
+
+            if (hasRecipe === true) { messagePopup('results :)', false, recipesInfo) }
+            if (hasRecipe === false) { messagePopup('no recipe', true) }
+        }  
+
+        // message from PREDICT.js with prediction RESULTS
+        if (request.message === 'results') { mpredict=request.time; processResults(request.results) }
+
+        // if more Elements have been loaded, update display Object 
+        // (it happens when script starts before all page content is loaded)
+        
+        // all other messages should be from POPUP.js when user clicks a button/radio/checkbox
+        if (!hasRecipe) { return }
+
+        setDisplayProperties()
+
+        switch (request.parameter) {
+            case 'reset': reset()
+                break
+            case 'recipes': toggleRecipes(request.choice) 
+                break
+            case 'recipes.ing': focusList(request.choice, 'ing') 
+                break
+            case 'recipes.meth': focusList(request.choice, 'meth') 
+                break
+            case 'save': handlePagelist('save') 
+                break 
+            case 'delete': handlePagelist('delete') 
+                break 
+            case 'print': window.print() 
+                break 
+
+            // OPTIONS
+            case 'focus': recipeDisplay(request.choice) 
+                break
+            case 'videos': console.log(display.videos.containers);
+            case 'images':
+            case 'compact': updateDisplay() 
+                break
+
+            // IN-DEVELOPMENT MODE - FEEDBACK
+            case 'save-feedback': saveErrors() 
+                break
+            case 'feedback-show': displayFeedback() 
+                break
+            case 'feedback-reset': resetFeedback() 
+                break
+        }
+    });
+
+    setDisplayProperties()  // TODO suppose the page is not in it's supposed correctly display (like when devtools are open)
+
+    updateDisplay()
 }
 
-function processResults(content) {
+function setDisplayProperties() {
+    /** When document finishes loading, assign values to global variables */
+
+    if (!display.indexes || Object.keys(display.indexes).length < Array.from(document.body.querySelectorAll('*')).length) {
+        display.body = document.body;
+        display['indexes'] = display.getIndexes()
+    }
+
+    let currentUnchanged = display.getUnchanged()
+    if (!display.unchanged || currentUnchanged !== display.unchanged) {
+        display['unchanged'] = currentUnchanged
+    }
+
+    let currentImages = display.getImages()
+    if (!display.images || currentImages.elements.length !== display.images.elements.length) {
+        display['images'] = currentImages
+    }
+    
+    let currentVideos = display.getVideos()
+    if (!display.videos || currentVideos.elements.length !== display.videos.elements.length) {
+        console.log('videos changed')
+        display['videos'] = currentVideos
+    }
+
+    mset = Date.now()/1000
+}
+
+function processResults(resultsReceived) {
     /*
     1. Search for a match between RESULTS and page content
     2. Find an Element for each LIST (Ingredients and Method) based on a correspondence score
@@ -168,301 +274,453 @@ function processResults(content) {
     6. Send message to POPUP
     */
 
-    if (content == undefined) { messagePopup('results undefined', true) }
-
-    results = { 'ing': content[0], 'meth': content[1], 'all': content[2] }
-    console.log(results.ing); console.log(results.meth); 
-
-    // SEARCH FOR MATCHES
-    let ing_node = findListNode(results.ing, 'ing')
-    let meth_node = findListNode(results.meth, 'meth')
-    if (ing_node == null && meth_node == null) { messagePopup('no recipe found', true) }
-
-    console.log('FIRST MATCH:::::::::::::::::::::::::::::::'); console.log(ing_node, meth_node, (ing_node.score+meth_node.score)/2);
-
-    // SEARCH FOR MULTIPLE RECIPES
-    let ing_nodes = [[ing_node]] //getMultipleElementsForSingleList(results.ing, ing_node) //multipleLists(results.ing, ing_node)
-    let meth_nodes = [[meth_node]] //getMultipleElementsForSingleList(results.meth, meth_node) //multipleLists(results.meth, meth_node)
-
-    //console.log('SECOND MATCH:::::::::::::::::::::::::::::::');  console.log(ing_nodes[0]); console.log(meth_nodes[0])
-
-    // SORT NODES
-    nodes = [...ing_nodes[0], ...meth_nodes[0]]
-    nodes = nodes.filter(node=> { return node != null });       // delete null values 
-    nodes.sort((a,b)=> { return a.position - b.position })      // sort by order they appear in document
-    for (let node of nodes) {                                   // delete repeated nodes
-        let repeated = nodes.find(v=> { return v.element == node.element && nodes.indexOf(v) != nodes.indexOf(node)})
-        if (repeated) { nodes.splice(nodes.indexOf(repeated), 1) }
+    if (!resultsReceived) { 
+        hasRecipe = false 
+        messagePopup('no recipe', true);
+        return
     }
 
-    //console.log('NODES:::::::::::::::::::::::::::::::::::::'); console.log(nodes);
+    results = resultsReceived
 
-    // STORE EACH RECIPE NODE (multiple RECIPES if all have pairs)
-    if (ing_nodes[0].length == meth_nodes[0].length && ing_nodes[0].length > 1) {
-        for (let i = 0; i < nodes.length; i += 2) {
-            recipes.push(new Recipe(nodes[i], nodes[i+1]))
-        }
+    console.log(results.ing); console.log(results.meth); console.log(results.all);
+
+    // SEARCH FOR SINGLE AND MULTIPLE RECIPES
+    let firstRecipe = findRecipe(document.body, results)
+
+    mfirst = Date.now()/1000
+
+    let multipleRecipes = findMultipleRecipes()
+
+    mmultiple = Date.now()/1000
+    
+    if (!firstRecipe && !multipleRecipes) { 
+        hasRecipe = false
+        messagePopup('no recipe', true) 
+        return
+    }
+    
+    if (firstRecipe && multipleRecipes) {
+        // COMPARE SCORES
+        let firstScore = Math.max(firstRecipe.score, firstRecipe.listScore)
+        
+        let recipesLines = multipleRecipes.reduce((array, recipe) => [...array, ...recipe.lines], [])
+        let listLines = multipleRecipes.map(recipe => { 
+            let lines = []
+            if (recipe.ing) { lines.push(...recipe.ing.lines) }
+            if (recipe.meth) { lines.push(...recipe.meth.lines) }
+            return lines
+        });
+        let recipesScore = Math.max(getScore(results.all, recipesLines), getScore(results.all, listLines))
+        
+        recipes = (recipesScore > firstScore) ? multipleRecipes : [firstRecipe]
+
+        console.log('SCORES:\n' + 'SINGLE RECIPE:', firstScore, '\nMULTIPLE RECIPES:', recipesScore);
     }
     else { 
-        let recipe = new Recipe(ing_node, meth_node, 0)
-        console.log('1ST RECIPE:', recipe);
-        let new_nodes = recipeSublists(recipe.Node)
-        recipes.push(new Recipe(new_nodes.ing, new_nodes.meth, 0))
-        console.log('FINAL RECIPE:', recipes[0]);
+        recipes = multipleRecipes || [firstRecipe] 
     }
 
+    hasRecipe = true
+
+    recipesInfo = {
+        'length': recipes.length,
+        'lists': recipes.map(recipe => recipe.hasLists)
+    }
+    messagePopup('results :)', false, recipesInfo)
+
     
-    has_results = true
-    //console.log('RECIPES:'); console.log(recipes);
 
+    console.log('RECIPES:');
+    if (multipleRecipes) {
+        for (let recipe of recipes) {
+            console.log(recipe);
+        }
+    }
+    else { console.log(recipes[0]); }
 
-    // check if RECIPE Node score is higher than the score of the LISTS Nodes 
-    // (which probabily means that it found the RECIPE but didn't find the LISTS correctly)
-    lists = recipes[0].score >= recipes[0].Node.score
-    console.log('RECIPE SCORE >= LISTS SCORE', lists);
-    messagePopup('results :)', false, 0, lists)
-
-
-
-    m4 = Date.now()/1000
-    console.log('TIMES: all -', (m4-start))
-    console.log('setting -', (m1-start));
-    console.log('predict.js -', mm-m2)
-    console.log('messaging', (m3-mm));
-    console.log('processResults -', (m4-m3))
+    end = Date.now()/1000
+    console.log('TIMES: \n\tall -', (end-start).toFixed(2))
+    console.log('\tset -', (mset-start).toFixed(2));
+    console.log('\tupdate -', (mupdate-mset).toFixed(2));
+    console.log('\tpredict.js -', (mpredict-mupdate).toFixed(2))
+    console.log('\tprocessResults -', (end-mpredict).toFixed(2))
+    console.log('................')
+    console.log('first:', (mfirst-mpredict).toFixed(2));
+    console.log('\t nodes:', (mnodes-mpredict).toFixed(2));
+    console.log('\t sublists:', (msublists-mnodes).toFixed(2));
+    console.log('\t\t sub1:', (msub2-mnodes).toFixed(2));
+    console.log('\t\t sub2:', (msublists-msub2).toFixed(2));
+    console.log('multiple:', (mmultiple-mfirst).toFixed(2));
+    console.log('final:', (end-mmultiple).toFixed(2));
 }
 
-function findListNode(results, type=undefined) {   
+function findMultipleRecipes() {
+    
+    let repeats = findRepeatedTitles()
+    console.log('REPEATED TITLEs:', repeats)
+
+    if (!repeats) { return null }
+
+    let recipeElements = findRecipeElements(repeats)
+
+    let ingCopy = [...results.ing]
+    let methCopy = [...results.meth]
+
+    //console.log('RECIPE ELEMENTS:', recipeElements)
+
+    // divide results for each recipe
+    let newResults = recipeElements.map(element => { 
+        let lines = correctLines(element.innerText)
+        let res = { 'ing': [], 'meth': [], 'all': [] }
+
+        // order of lists
+        let list = repeats.order[0]
+
+        // Get all the Lines from this element which are in results, avoiding repetitions 
+        // (the titles should be repeated and some ingredients might be in more than one recipe)
+        // change list after second title is found
+        for (let line of lines) {
+            if (line.startsWith(repeats.titles[1])) { list = repeats.order[1] }
+            if (results[list].includes(line) && !res[list].includes(line)) {
+                res[list].push(line)
+                res['all'].push(line)
+            }
+        }
+
+        // delete lines already found
+        ingCopy = ingCopy.filter(result => !res.ing.includes(result))
+        methCopy = methCopy.filter(result => !res.meth.includes(result))
+        
+        return res
+    });
+
+    console.log('----------------------------NEW RESULTS-------------------------------', newResults);
+    
+    // find each recipe, filter nulls
+    let recipes = recipeElements.map((element, i) => findRecipe(element, newResults[i], i)).filter(recipe => recipe)
+
+    //console.log(recipes);
+
+    return (recipes.length > 0) ? recipes : null
+}
+
+function findRepeatedTitles() {
+    let lines = correctLines(display.body.innerText)
+    
+    let titles = [], order = []
+    
+    lines.forEach(line => {    
+        let ing_title = TITLES.ing.find(title => line.startsWith(title))
+        let meth_title = TITLES.meth.find(title => line.startsWith(title))
+        if (ing_title) { 
+            titles.push(ing_title); 
+            order.push('ing')
+        }
+        if (meth_title) { 
+            titles.push(meth_title); 
+            order.push('meth')
+        }
+    });
+
+    // make sure that there are at least two lists per recipe
+    titles = titles.filter((title, i) => titles.indexOf(title) != titles.lastIndexOf(title) && titles.indexOf(title) === i)
+    if (titles.length < 2) { return null }
+    
+    order = order.filter((value, i) => order.indexOf(value) != order.lastIndexOf(value) && order.indexOf(value) === i)
+
+    return { titles, order }
+}
+
+function findRecipeElements(repeats) {
+    let string = repeats.titles.reduce((str, title) => str + title + '.+?', '').replace(/\.\+\?$/, '')
+    let re = new RegExp(string, 'gs')
+
+    // 1. Search all the text for the repetitions
+    let matches = document.body.innerText.toLowerCase().match(re)
+
+    // 2. find the deepest Element that contains each mach in its innerText
+    let finds = matches.map(match => {
+        let deepest = document.body
+        while (true) {
+            let deeper = Array.from(deepest.children).find(el => el.innerText.toLowerCase().includes(match))
+            if (!deeper) { break }
+            deepest = deeper
+        }
+        return deepest
+    });
+
+    return finds
+}
+
+function findRecipe(element, currentResults, index=0) {
+  
+    let ingNode = findListNode(element, currentResults.ing, 'ing')
+    let methNode = findListNode(element, currentResults.meth, 'meth')
+
+    mnodes = Date.now()/1000
+
+    if (!ingNode && !methNode) { return null }
+
+    let firstRecipe = new Recipe(ingNode, methNode, index)
+
+    let newRecipe = recipeSublists(firstRecipe, currentResults, index)
+
+    msublists = Date.now()/1000
+
+    return newRecipe || firstRecipe
+}
+
+function findListNode(parent, currentResults, type) {   
     /*
     Search document and find the NODE with the highest correspondence with the RESULTS for a given LIST. 
     Avoid Elements that are not visible (no offsetHeight)
     Do not count lines which are already in Ingredients Node
     Return a Node Object or null if there is no correspondence
     */
-    let best_match = [null, 0]
+    let bestMatch = [null, 0]
     
-    for (let element of text_elements) {
-        if (element.offsetHeight == 0) { continue } 
+    for (let element of parent.querySelectorAll('*')) {
+        if (!element.innerText || element.offsetHeight === 0 || display.unchanged.includes(element)) { continue } 
+        
         let lines = correctLines(element.innerText)
+        let score = getScore(currentResults, lines)
         
-        score = getScore(results, lines)
-        
-        // TODO TEST THIS
         if (type && TITLES[type].includes(lines[0])) { score *= 2 }
         
-        if (score > best_match[1]) { best_match = [element, score] }
+        if (score > bestMatch[1]) { bestMatch = [element, score] }
     }
 
-    if (best_match[0] == null) { return null }
+    if (!bestMatch[0]) { return null }
 
-    return new Node(best_match[0], best_match[1]) 
+    return new List([bestMatch[0]], type)
 }
 
-function recipeSublists(ancestor) {
+function recipeSublists(recipe, currentResults, index) {
     /*
     Find best matches for each list within scope of RECIPE Element
     
     */
-    let ing_node = findSublist('ing')
-    let meth_node = findSublist('meth')
+    console.log('1........................', recipe);
 
-    console.log('COMPARE SCORES:', 'RECIPE:', ancestor.score, 'ING NODE:', ing_node.score, 'METH NODE:', meth_node.score)
+    let rec1, rec2
+    let score1 = 0, score2 = 0
 
-    function findSublist(type) {
-        // filter LINES in RESULTS that are not in RECIPE's innerText
-        let new_results = results[type].filter(line=> { return ancestor.lines.includes(line) })
-
-        // TODO - TEST THIS or: score/2
-        if (type == 'meth') { new_results = new_results.filter(line=> { return !ing_node.lines.includes(line) }) }
-        // TODO: it could be multiple node (like a <p> for each line, without common parent)
-
-        let best_match = [null, 0]
-        for (let element of ancestor.element.querySelectorAll('*')) {
-            if (element.innerText == undefined || element.offsetHeight == 0) { continue }
-            let lines = correctLines(element.innerText)
-            let score = new_results.filter(line=> { return lines.includes(line) }).length
-            
-            // TODO TEST THIS
-            if (TITLES[type].includes(lines[0])) { score *= 2 }
-            
-            if (score > best_match[1]) { best_match = [element, score] }
-        }
-        
-        return new Node(best_match[0], getScore(new_results, correctLines(best_match[0].innerText)))
+    let first = findSublist(currentResults)
+    if (first) {
+        let list1 = first.ing[0] ? new List([first.ing[0]], 'ing') : null
+        let list2 = first.meth[0] ? new List([first.meth[0]], 'meth') : null
+        rec1 = new Recipe(list1, list2, index)
+        score1 = Math.max(rec1.listScore + rec1.score)
+        console.log('2.......................', rec1)
     }
 
-    // TODO ........
-    function findSublists(type) {
-        let ing_results = results['ing'].filter(line=> { return ancestor.lines.includes(line) })
-        let meth_results = results['meth'].filter(line=> { return ancestor.lines.includes(line) })
+    msub2 = Date.now()/1000
+
+    let second = findSublists(currentResults)
+    if (second) {
+        let list3 = second.ing[0] ? new List(second.ing[0], 'ing') : null
+        let list4 = second.meth[0] ? new List(second.meth[0], 'meth') : null
+        rec2 = new Recipe(list3, list4, index)
+        score2 = Math.max(rec2.listScore + rec2.score)
+        console.log('3.......................', rec2);
+    }
+
+    if (!first && !second) { return null }
+
+    console.log('SCORES', '\n\tRECIPE:', recipe.score, '\n\tSUBLIST:', score1, '\n\tSUBLISTS:', score2)
+
+    return score1 >= score2 ? rec1 : rec2
+
+    function findSublist() {
+        let lists = { 'ing': [], 'meth': [] }
+
+        for (let type in lists) {
+
+            let listResults = results[type]
+            
+            if (listResults.length === 0) {  // only 1 LIST
+                lists[type] = [null, []]
+                continue 
+            }
+            
+            let other = type === 'ing' ? 'meth' : 'ing'
+            
+            // TODO - TEST THIS or: score/2
+            if (type === 'meth') { listResults = listResults.filter(result => !lists.ing[1].includes(result)) }
+    
+            let bestMatch = [null, 0, []]
+            for (let element of recipe.element.querySelectorAll('*')) {
+                if (!element.innerText || element.offsetHeight === 0) { continue }
+    
+                let lines = correctLines(element.innerText)
+                let score = listResults.filter(result => lines.includes(result)).length
+    
+                if (lines.length === 0) { continue }
+                
+                if (TITLES[type].find(title => lines[0].startsWith(title))) { score *= 2 }
+                if (TITLES[other].find(title => lines.find(line => line.startsWith(title)))) { score /= 2 }
+
+                if (score > bestMatch[1]) { bestMatch = [element, score, lines] }
+            }
+            
+            lists[type] = [bestMatch[0], bestMatch[2]]
+        }
+
+        if (!lists.ing[0] && !lists.meth[0]) { return null }
+
+        return lists
+    }
+
+    function findSublists() {
+
+        // if there are titles for each section, check for order
+        let lists = {}
+        let ing_index = recipe.lines.findIndex(line => TITLES['ing'].find(t => line.startsWith(t)))
+        let meth_index = recipe.lines.findIndex(line => TITLES['meth'].find(t => line.startsWith(t)))
+
+        if (ing_index > -1 && meth_index > -1) {
+            lists = ing_index < meth_index ?
+                {1: 'ing', 2: 'meth'} :
+                {1: 'meth', 2: 'ing'}
+        } 
+        else {
+            lists = currentResults.ing.includes(currentResults.all[0]) ?
+                {1: 'ing', 2: 'meth'} :
+                {1: 'meth', 2: 'ing'}
+        }
+
         // find if LIST is spread along multiple Elements - get all Elements from RECIPE Element starting from the first that 
         // contains the first LINE of RESULTS until the one who contains the last LINE.
-        let first = undefined, m1, last = undefined
-        let scores = []
-        for (let child of ancestor.children) {
-            if (child.innerText == undefined || child.innerText == '') { continue }
-            if (correctLines(child.innerText).includes(results.all[0])) { first = child }
-            if (correctLines(child.innerText).includes(results.all[results.all.length-1])) { last = child }
-            if (first == undefined) { continue }
 
-            // how many
-            let lines = correctLines(child.innerText)
-            let ing_score = results.ing.filter(line=> { return lines.includes(line) }).length
-            let meth_score = results.meth.filter(line=> { return lines.includes(line) }).length
-            //let ing_score = getScore(results.ing, lines)
-            //let meth_score = getScore(results.meth, lines)
-            scores.push([child, ing_score, meth_score])
-
-            if (last != undefined) { break }
-        }
-        console.log(scores);
-        // find best division
-        let best_score = [null, 0]
-        for (let i = 1; i < scores.length; i++) {
-            let ing_score = scores.slice(0, i).reduce((total, score)=> { return total = total + score[1] }, 0)
-            let meth_score = scores.slice(i).reduce((total, score)=> { return total = total + score[2] }, 0)
-            if (ing_score+meth_score > best_score[1]) { best_score = [scores[i][0], ing_score+meth_score] }
-            console.log(best_score);
-        }
-
-        console.log(first, last);
-    }
-
-    return {'ing': ing_node, 'meth': meth_node}
-}
-
-// TODO PROBLEM: this will try to match all of the lines
-function getMultipleElementsForSingleList(results, node) { 
-    /*
-    Starting from first element, check Elements' innerText for list content, until list is \\\exhausted,
-    saving the ones who have Matches.
-    Repeat for every Element that starts with first line.
-    Return the group of Matches with highest score.
-    */
-    let elements = [...text_elements]
-    let best_match = [[node], node.score]
-    for (let i = 0; i < elements.length; i++) {
-        if (correctLines(elements[i].innerText).includes(results[0])) {
-            let lines = [...results]
-            let branches = []
-            let matches = []
+        // look for a single elements for each line, filter already ones added
+        let lines = recipe.lines
+        let elements = Array.from(recipe.descendants).filter((el, i, array) => {
             
-            for (let j = i; j < elements.length; j++) {
-                
-                // ensure no nested Nodes
-                if (branches.includes(elements[j])) { continue }
+            if (!el.innerText || display.unchanged.includes(el)) { return false }
 
-                let element_lines = correctLines(elements[j].innerText)
-                let temp = lines[0]
-                let count = 0
-                while(element_lines.includes(temp)) {
-                    count++
-                    temp = lines[count]
+            let thisLines = correctLines(el.innerText)
+            
+            if (thisLines.length === 1 && lines.includes(thisLines[0])) { 
+                return i === array.findIndex(el2 => el.innerText === el2.innerText)  // no duplicates; return uppermost element
+            }
+            else {  // make sure these lines are not divided amongst element's children
+                return !Array.from(el.children).find(child => 
+                    correctLines(child.innerText).find(line => thisLines.includes(line))
+                )
+            }
+        });
+
+        let first, second
+        let lines1 = [], array1 = [], lines2 = [], array2 = [] 
+        let score1 = 0, score2 = 0, avgScore = 0
+        let bestCombo = [null, [], null, [], 0]
+
+        // first LIST
+        for (let i = 0; i < elements.length; i++) {
+            
+            let lines = correctLines(elements[i].innerText)
+
+            if (lines.length === 0) { continue }
+
+            // give precedence to TITLE to estabilish where first LIST starts
+            if (!first && lines.includes(currentResults.all[0])) {
+                first = [i, elements[i]]
+            }
+            if (TITLES[lists[1]].find(title => lines[0].startsWith(title))) {
+                first = [i, elements[i]]
+                lines1 = []  // empty array to start again from scratch
+            }
+            if (!first) { continue }
+
+            array1 = elements.slice(first[0], i+1)
+            
+            lines1.push(...lines)
+            
+            // only 1 LIST
+            if (currentResults[lists[2]].length === 0) { 
+                score1 = getScore(currentResults[lists[1]], lines1)
+                if (score1 > bestCombo[4]) { 
+                    bestCombo = [array1, lines1, null, [], score1]
                 }
-                lines.slice(count)
+                continue 
+            }
+            
+            // second LIST
+            lines2 = []
+            second = [i+1, elements[i+1]]
+            for (let j = second[0]; j < elements.length; j++) {
+                
+                lines2.push(...correctLines(elements[j].innerText))
+                
+                if (lines2.length === 0) { continue }
 
-                // Match found
-                if (count > 0) { 
-                    let match = new Node(elements[j])
-                    matches.push(match);
-                    branches.push(...match.branch)
+                // heighten score if title of respective list is in the first line
+                score1 = getScore(currentResults[lists[1]], lines1)
+                score2 = getScore(currentResults[lists[2]], lines2)
+                if (TITLES[lists[2]].find(title => lines2[0].startsWith(title))) { score2 *= 2 }
+                avgScore = (score1 + score2) / 2
+
+                if (avgScore > bestCombo[4]) { 
+                    array2 = elements.slice(second[0], j+1)
+                    bestCombo = [array1, lines1, array2, lines2, avgScore]
+                    //console.log(bestCombo[1], bestCombo[3], bestCombo[4]);
                 }
             }
-            let all_lines = matches.map(m=> { return m.lines })
-            let score = getScore(results, all_lines.flat())
-            
-            // save if higher score
-            if (score > best_match[1]) { best_match = [matches, score]; 
-            console.log('NEW MATHCING:::::::::::::::::::'); console.log(matches, all_lines.flat()); console.log(score) }
+        }
+
+        if (!bestCombo[0] && !bestCombo[2]) { return null }
+
+        return { 
+            [lists[1]]: [bestCombo[0], bestCombo[1]],
+            [lists[2]]: [bestCombo[2], bestCombo[3]]
         }
     }
-    return best_match
-}
-// TODO
-function multipleLists(results, node) {
-    /* 
-    Check if the page has multiple LISTS of the same type (Ingredients or Method). 
-    Search is based on the pattern "TITLE + LIST ELEMENTS".
-    1st ALTERNATIVE: for every repeated Line in LIST, search for pattern 
-    (where TITLE == Line and LIST ELEMENTS == every following line until next repeated line)
-    2nd ALTERNATIVE: search for sections in the document with the same first line as the single match.
-    Combine the score of multiple Nodes found to see if it's higher than the single match.
-    If there are nested Nodes (node inside another's branch), erase the one with lowest score.
-    Return an array containing an array of NODES or the original NODE, whichever has the highest score,
-    and the TOTAL SCORE
-    */
-    let best_combo = [[node], node.score]
-
-    // 1st ALTERNATIVE
-    let repeated_lines = results.filter((line,index,arr)=> { 
-        return index != arr.lastIndexOf(line) && index == arr.indexOf(line)
-    });
-    for (let line of repeated_lines) {
-        
-        // divide results in multiple lists
-        let repeated_lists = []
-        let temp = results.slice(results.indexOf(line))
-        let next = temp.slice(1).indexOf(line)
-        while (next != -1) {
-            repeated_lists.push(temp.slice(0, next+1))
-            temp.splice(0, next+1)
-            next = temp.slice(1).indexOf(line)
-        }
-        repeated_lists.push(temp)
-
-        console.log(repeated_lists);
-
-        // check score of Nodes combined
-        let nodes = []
-        for (let list of repeated_lists) {
-            let new_node = findListNode(list)
-            nodes.push(new_node)
-        }
-        nodes = filterNestedNodes(nodes)
-
-        let lines = nodes.map(v=> correctLines(v.text) ); 
-        let total_score = getScore(results, lines.flat())
-
-        // save if higher score
-        if (total_score > best_combo[1]) { best_combo = [nodes, total_score] }
-    }
-
-    console.log('..............................'); 
-    console.log("1st ALTERNATIVE:", best_combo[0], best_combo[1])
-
-    // 2nd ALTERNATIVE
-    let first_line = node.lines[0]
-    let new_results = difference(results, node.lines)
-    let repeated_nodes = [node]
-    let lines = [correctLines(node.text)]
-    for (let element of text_elements) {
-        if (element.innerText.split('\n')[0] == first_line     // has the same 1st line
-          && !element.innerText.endsWith(first_line)           // has more text
-          && !node.branch.includes(element)) {                 // not in the same branch
-            let new_lines = correctLines(element.innerText)
-            let new_node = new Node(element, getScore(new_results, new_lines))
-            repeated_nodes.push(new_node)
-            lines.push(...new_lines)
-            new_results = difference(new_results, new_node.lines)
-        }
-    }
-    let total_score = getScore(results, lines)
-    
-    console.log('2nd ALTERNATIVE:', repeated_nodes, total_score)
-
-    if (total_score > best_combo[1]) { 
-        best_combo = [repeated_nodes, total_score] 
-    }
-
-    return best_combo
 }
 
 
 //// SECONDARY FUNCTIONS
+function messagePopup(message, error=false, info) {
+    chrome.runtime.sendMessage({ message, length, info });
+    if (error) { throw new Error(message) }
+}
+
+function correctURL(url) {
+    return url.includes('/#') ? url.replace(/\/#.+/, '/') : url
+}
+
+function correctLines(text) {
+    /*
+    Divide the text in lines and delete empty lines, doubles spaces and symbols at the beggining of line
+    Search for list entries which are broken in different lines (e.g: "2\nlemons", "1 cup\nwater")
+    and concatenate them in a single line.
+    Return an array with corrected lines
+    */
+    if (!text) { return [] }
+
+    let lines = text.toLowerCase().replaceAll(/^[^\w¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]/gm, '').replaceAll('\n\n', '\n').replaceAll(/ +/g, ' ').split('\n')
+    
+    let correctedLines = []
+    for (let i = 0; i < lines.length; i++) {
+        // pattern broken in 2 lines: number alone || number+unit alone
+        if (lines[i].search(PATTERN_N) !== -1 || lines[i].search(PATTERN_N_U) !== -1) {
+            // ensure a single space between concatenated lines
+            let two = `${lines[i]} ${lines[i+1]}`.replaceAll('  ', ' ')
+            correctedLines.push(two)
+            i++
+        }
+        // no pattern; avoid empty lines
+        else if (lines[i].match(/\w/)) { 
+            correctedLines.push(lines[i]) 
+        }
+    }
+    return correctedLines
+}
+
 function getScore(results, lines) {
     /*
     Given a set of PREDICTIONS (results) and the LINES of a document Element,
-    return the proportion between MATCHES and ERRORS (false positives and negatives)
+    return the proportion between MATCHES and ERRORS (false positives and negatives).
+    Avoid divisions by 0 when no errors
     */
     let copy = [...results]
     let matched = 0
@@ -473,48 +731,51 @@ function getScore(results, lines) {
             matched++ 
         }
     }
-    
-    let errors = results.length - matched + lines.length - matched
+    let resultsScore = matched / results.length || 0
+    let nodeScore = matched / lines.length || 0
 
-    return matched / errors
+    return resultsScore * nodeScore
 }
 
-function findCommonAncestor(...nodes) {
+function findCommonAncestor(lists) {
     /*
-    For each of the Nodes, iterate through their ancestors to find the closest one they all have in common.
+    For each of the Lists, iterate through their ancestors to find the closest one they all have in common.
     If there are Nodes in the same BRANCH, choose the highest one (with least depth).
     */
-    let branch = nodes[0].branch
-    let ancestor = nodes[0]
-    for (let i = 1; i < nodes.length; i++) {
-        let temp = nodes[i].element
-        if (branch.includes(temp) && elementPosition(temp).deepness > ancestor.deepness) { continue }
-        
-        while (!branch.includes(temp) && temp != document.body) {
-            temp = temp.parentNode
+    let elements = lists.reduce((array, list) => [...array, ...list.elements], [])
+    let branches = lists.map(list => list.branch)
+    let ancestor = document.body
+    // make sure not to pass over children; includes every LIST Elements
+    for (let element of branches[0]) {
+        if (elements.includes(element)) { break }
+        if (branches.every(branch => branch.includes(element))) { 
+            if (elements.every(el => Array.from(element.querySelectorAll('*')).includes(el))) {
+                ancestor = element 
+            }
         }
-        ancestor = new Node(temp)
+        else { break }
     }
+
     return ancestor
 }
 
-function getBranch(nodes) { 
+function getBranch(elements) { 
     /*
-    Given an array of NODES, return an array of their HTML Element ancestors (TRUNK) and an array with the complete BRANCH 
+    Given an array of HTML Elements, return an array of their Ancestors (TRUNK) and an array with the complete BRANCH 
     (from ancestor to descendants), both of them in descending order.
     */
     let trunks = []
     let branches = []
-    for (let node of nodes) {
-        let trunk = [node.element]
-        let temp = node.element
-        while (temp != document.documentElement) {
-            trunk.unshift(temp);
+    for (let element of elements) {
+        let trunk = [element]
+        let temp = element
+        while (temp !== document.documentElement) {
+            if (!trunks.includes(temp)) { trunk.unshift(temp) }
             temp = temp.parentNode;
         }
         trunks.push(...trunk)
-        branches.push(...trunk, ...node.element.querySelectorAll('*'))
-    }                                             
+        branches.push(...trunk, ...element.querySelectorAll('*'))
+    }                                
     return { branch: branches, trunk: trunks }
 }
 
@@ -522,11 +783,11 @@ function deepestNode(element) {
     /*
     Given an HTML Element, return the deepest Element (furthest away from document.documentElement) with the same innerText
     */
-    if (element == null) { return }
+    if (element === null) { return }
 
     let deepest = element
-    for (let el of text_elements) {
-        if (el.innerText == element.innerText && elementPosition(el).deepness > elementPosition(deepest).deepness) {
+    for (let el of textElements) {
+        if (el.innerText === element.innerText && elementPosition(el).deepness > elementPosition(deepest).deepness) {
             deepest = el
         }
     }
@@ -541,107 +802,34 @@ function elementPosition(element) {
     let position = 0
     let deepness = 0
     for (el of document.body.querySelectorAll("*")) {
-        if (el == element) { break }
+        if (el === element) { break }
         position++
     }
-    while (element != document.documentElement) {
+    while (element !== document.documentElement) {
         element = element.parentNode
         deepness++
     }
     return { position, deepness }
 }
 
-function filterNestedNodes(nodes) {
-    /*
-    Sort the nodes in descending order of score.
-    Find NODES which are nested inside each other (it's Element belongs to the other's BRANCH).
-    Erase the one with lowest score.
-    */
-    let copy = [...nodes]
-    let repeated_nodes = []
-    copy.sort((a,b)=> { return a.score > b.score })
-    for (let i=0; i < copy.length; i++) {
-        for (let j=i+1; j < copy.length; j++) {
-            if (copy[i].branch.includes(copy[j].element) || copy[j].branch.includes(copy[i].element)) {
-                repeated_nodes.push(copy[j])
-                console.log(copy[j].element, copy[i].element)
-            }
-        }
-    } 
-    return nodes.filter(v=> { return !repeated_nodes.includes(v) })
-}
-
-function correctLines(text) {
-    /*
-    Divide the text in lines and delete empty lines, doubles spaces and symbols at the beggining of line
-    Search for list entries which are broken in different lines (e.g: "2\nlemons", "1 cup\nwater")
-    and concatenate them in a single line.
-    Return an array with corrected lines
-    */
-    let lines = text.toLowerCase().replaceAll(/^[^\w¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]/gm, '').replaceAll('\n\n', '\n').replaceAll('  ', ' ').split('\n')
-    let corrected_lines = []
-    for (let i = 0; i < lines.length; i++) {
-        // pattern broken in 2 lines: number alone || number+unit alone
-        if (lines[i].search(PATTERN_N) != -1 || lines[i].search(PATTERN_N_U) != -1) {
-            // ensure a single space between concatenated lines
-            let two = `${lines[i]} ${lines[i+1]}`.replaceAll('  ', ' ')
-            corrected_lines.push(two)
-            i++
-        }
-        // no pattern
-        else { corrected_lines.push(lines[i]) }
-    }
-    return corrected_lines
-}
-
-function difference(array1, array2) {
-    /* 
-    Return the elements of the first array 
-    that are not in the second 
-    */
-    let new_array = []
-    for (let item of array1) {
-        if (!array2.includes(item)) { new_array.push(item) }
-    }
-    return new_array
-}
-
-function correctURL(url) {
-    return url.includes('/#') ? url.replace(/\/#.+/, '/') : url
-}
-
-function messagePopup(message, error=false, length=0, lists=true) {
-    chrome.runtime.sendMessage({ message, length, lists });
-    console.log(lists);
-    if (error) { throw new Error(message) }
-}
-
 
 ////// ACTIONS
-function focusNode(recipes) {
+function focusRecipe(recipes) {
     /*
     
     */
     display.type = 'recipe'
 
-    display.focused = display.focus == 'single' || lists == false 
-        ? recipes.map(rec=> { return rec.Node }).flat()
-        : recipes.map(rec=> { return [rec.ing, rec.meth] }).flat()
+    display.focused = display.focus === 'single' ? 
+        recipes.map(rec => rec.element) :
+        recipes.map(rec => [...rec.ing.elements, ...rec.meth.elements]).flat()
 
     updateDisplay()
-
-    // IN DEVELOPMENT MODE - 
-        //show score
-        let lines = []
-        for (let node of display.focused) {
-            lines.push(...correctLines(node.text))
-        }
-        console.log('SCORE:', getScore(results.all, lines))
 }
 
 function focusList(n, list) {
     display.type = list
-    display.focused = [recipes[n][list]]
+    display.focused = recipes[n][list].elements
     updateDisplay()
 }
 
@@ -650,150 +838,72 @@ function reset() {
     Reassign original display values
     */
     display.type = 'page'
-    display.recipes = []
-    display.focused = [body_node]
+    display.focused = [display.body]
     updateDisplay()
-}
-
-function zoomIn() {
-    /*
-    Search for descendant Elements of the current Elements in display (focused Node) that are ancestors of the current 
-    RECIPE selected and select the closest one that will display a differente content.
-    A) If no RECIPES selected, select all of them (the radio button "Peek Recipes"/"Peek All") and recall this function
-    B) If one RECIPE selected, hide all other descendants that do not belong in this RECIPE BRANCH
-    C) If all RECIPES selected, do the same as in B) for each RECIPE, but hide thes ones that do not belong in 
-    ANY of any of all the RECIPE BRANCHES & belongs in the corresponding RECIPE BRANCH
-    Do not zoom beyond RECIPE Node Elements.
-    */
-    // A
-    if (display.recipes.length == 0) { 
-        toggleRecipes(-1, Focus=false);
-        zoomIn();
-    }
-    // B
-    else if (display.recipes.length == 1) {
-        let recipe = display.recipes[0]
-        let focused = display.focused[0]
-
-        if (focused.element === recipe.Node.element) { return }
-
-        let branch = recipe.Node.branch
-        let temp = focused
-        while (temp.text == focused.text && temp.element != recipe.Node.element) {
-            for (let element of temp.children) {
-                if (!branch.includes(element)) { element.style.display = 'none' }
-                else { temp = new Node(element) }
-            }
-        }
-        display.focused = [temp]
-    }
-    // C
-    else {
-        let branches = recipes.map(recipe=> { return recipe.Node.branch }).flat()
-        let new_focused = []
-        
-        for (let focused of display.focused) {
-
-            if (nodes.includes(focused.element)) { break }
-            
-            // find the RECIPE which has the current FOCUSED NODE in its branch
-            let recipe = recipes.filter((v)=> { return v.Node.branch.includes(focused.element) })[0]
-
-            let branch = recipe.Node.branch
-            let temp = focused
-            while (temp.text == focused.text && temp.element != recipe.Node.element) {
-                for (let element of temp.children) {
-                    if (!branches.includes(element)) { element.style.display = 'none' }
-                    else if (branch.includes(element)) { temp = new Node(element) }
-                }
-            }
-            new_focused.push(temp)
-        }
-        display.focused = new_focused
-    }
-}
-
-function zoomOut() {
-    /*
-    Search for the closest ancestor Element of the current NODE in display that has a different content 
-    (unless this is document.body), reassigning its original display value and that of its descendants.
-    */
-    if (display.focused[0] == body_node) { return }
-    
-    new_focused = []
-    for (let focused_node of display.focused) {
-        let parent_element = focused_node.parent
-        while (parent_element.innerText == undefined || parent_element.innerText == focused_node.text) {
-            parent_element = parent_element.parentNode
-
-            if (parent_element == document.body || parent_element == document.body) { 
-                reset();
-                messagePopup('reset')
-                return 
-            }
-
-            for (let element of parent_element.querySelectorAll('*')) {
-                element.style.display = element.dataset.recipeekDisplay || ''
-            }
-        }
-        new_focused.push(new Node(parent_element))
-    }
-    display.focused = new_focused
 }
 
 function toggleRecipes(n, Focus=true) {
     /*
     Change what RECIPES to display. 
-    n represents the index of the RECIPE to display (if == -1, show all RECIPES)
+    n represents the index of the RECIPE to display (if === -1, show all RECIPES)
     */
-    let show = n == -1 ? recipes : [recipes[n]]
-    display.recipes = show
-    if (Focus == true) { focusNode(show) }
+    display.recipes = n === -1 ? 
+        recipes : 
+        [recipes[n]]
+
+    if (Focus === true) { focusRecipe(display.recipes) }
 }
 
 ////// OPTIONS
-function setDisplay() {
-    chrome.storage.sync.get('options', data=> {
-        let options = data.options
-        let branch = display.branch
-        
-        // type of RECIPE display
-        options['focus'] == '1' ? display.focus = 'single' : display.focus = 'multi'
+function handlePagelist(action) {
+    chrome.storage.sync.get('saved', (lib) => {
+        let saved = lib.saved || {}
 
-        // hide/show IMAGES, LINKS, etc.
-        for (let element of document.body.querySelectorAll('*')) { 
-            if (unchanged().includes(element)) { continue }
+        action === 'save' ?
+            saved[document.title] = [window.location.href, window.location.hostname] :
+            delete saved[document.title]
 
-            element.dataset.recipeekDisplay =  window.getComputedStyle(element).display 
-            element.dataset.recipeekHeight = window.getComputedStyle(element).height
-            element.dataset.recipeekMinHeight = window.getComputedStyle(element).minHeight
-            element.dataset.recipeekMarginTop = window.getComputedStyle(element).marginTop
-            element.dataset.recipeekPaddingTop = window.getComputedStyle(element).paddingTop
-            element.dataset.recipeekMarginLeft = window.getComputedStyle(element).marginLeft
-            element.dataset.recipeekPaddingLeft = window.getComputedStyle(element).paddingLeft
-            
-            if (images.includes(element)) { toggleElement(element, options.images, branch) }
-        }
+        chrome.storage.sync.set({ saved })
+
+        messagePopup('pagelist changed', false)
     });
 }
 
 function updateDisplay() {
     chrome.storage.sync.get('options', data=> {
-
         let options = data.options
+
+        // type of RECIPE display
+        display.focus = options['focus'] === '1' ? 
+            'single' : 
+            'multi'
+        
         let branch = display.branch
+        let empties = display.empties
 
         for (let element of document.body.querySelectorAll('*')) {
-            if (unchanged().includes(element)) { continue }
+            if (display.unchanged.includes(element) || display.videos.subtree.includes(element)) { continue }
+
+            // do not mess with video elements - can screw up Video controls
+            if (!element.dataset.recipeekDisplay) {
+                element.dataset.recipeekDisplay = window.getComputedStyle(element).display
+                element.dataset.recipeekHeight = window.getComputedStyle(element).height
+                element.dataset.recipeekMinHeight =  window.getComputedStyle(element).minHeight
+                element.dataset.recipeekMargin = window.getComputedStyle(element).margin
+                element.dataset.recipeekPadding = window.getComputedStyle(element).padding
+            }
 
             if (!branch.includes(element)) { 
                 element.style.display = 'none' 
             }
-            else if (images.includes(element)) { 
-                toggleElement(element, options.images, branch)
-            }
-            else if (empties().includes(element)) {
+            else if (empties.includes(element)) {
                 heightDisplay(element, options.compact)
+            }
+            else if (display.videos.containers.includes(element)) { 
+                toggleElement(element, options.videos, branch)
+            }
+            else if (display.images.containers.includes(element) && !display.videos.containers.includes(element)) { 
+                toggleElement(element, options.images, branch)
             }
             else { 
                 element.style.display = element.dataset.recipeekDisplay
@@ -803,97 +913,88 @@ function updateDisplay() {
         // update margins
         ensureMinimumMargin(options.compact)
     });
+
+    mupdate = Date.now()/1000
 }
 
 function recipeDisplay(type) {
     /*
     TODO
     */
-    if (type == 1) { display.focus = 'single' }
+    if (type === 1) { display.focus = 'single' }
     else { display.focus = 'multi' }
 
-    if (display.type == 'recipe') { focusNode(recipes) }
-    else if (display.type != 'page') { focusList(0, display.type) }
+    if (display.type === 'recipe') { focusRecipe(recipes) }
+    else if (display.type !== 'page') { focusList(0, display.type) }
 }
 
 function heightDisplay(element, choice) {
-    if (choice == 'off') {
+    if (choice === 'off') {
         element.style.height = element.dataset.recipeekHeight
-        element.style.minHeight = element.dataset.recipeekMinHeight 
+        element.style.minHeight = element.dataset.recipeekMinHeight
     }
-    if (choice == 'on') { 
+    if (choice === 'on') { 
         element.style.height = 'fit-content'; 
         element.style.minHeight = 'fit-content'; 
     }
 }
 
 function toggleElement(element, choice, branch) {
-    if (choice == 'on' || !branch.includes(element)) { 
+    if (choice === 'on' || !branch.includes(element)) { 
         element.style.display = 'none' 
     }
     else { 
         // restore original display of Element and its descendants
         element.style.display = element.dataset.recipeekDisplay
-        for (let el of element.querySelectorAll('*')) { 
-            if (unchanged().includes(el)) { continue }
-
-            el.style.display = el.dataset.recipeekDisplay
-        }
     }
 }
 
 function ensureMinimumMargin(choice) {
     /**  */
-    if (choice == 'off') { 
-        for (let el of document.body.querySelectorAll('*')) { 
-            el.style.marginTop = el.dataset.recipeekMarginTop
-            el.style.paddingTop = el.dataset.recipeekPaddingTop
-            el.style.marginLeft = el.dataset.recipeekMarginLeft
-            el.style.paddingLeft = el.dataset.recipeekPaddingLeft
-        }
-        return
-    }
-
-    let box, content;
+    
     for (let el of document.body.querySelectorAll('*')) { 
-        if (el.offsetHeight == 0 || el.innerText == '' || el.innerText == undefined) { continue }
-        box = content = el    // first Element with content visible
-        break
+        el.style.margin = el.dataset.recipeekMargin
+        el.style.padding = el.dataset.recipeekPadding
     }
 
-    let next = true
-    let i = 0
-    while (next && i < 50) {
-        for (child of content.children) {
-            if (child.innerText === content.innerText) {
-                content = child;
-                next = true
-                break
-            }
-            next = false
-        }
-        i++
+    if (choice === 'off' || display.type === 'page') { return }
+
+    let container = Array.from(document.body.querySelectorAll('*')).find(el => 
+        el.style.display !== 'none' &&
+        el.offsetHeight > 0 && 
+        (el.innerText && 
+        el.innerText !== '' || 
+        display.images.subtree.includes(el) ||
+        display.videos.subtree.includes(el))
+    )
+
+    let content = child = container
+    while (child) { 
+        content = child
+        child = Array.from(content.children).find(el => el.innerText === content.innerText)
+        content.style.margin = '0px'
+        content.style.padding = '0px'
+    } 
+
+    content.style.margin = '5px'
+    content.style.padding = '5px'
+    container.style.margin = '5px'
+    container.style.padding = '0px'
+
+    console.log(container, content);
+
+    let topDistance = content.getBoundingClientRect().top + document.documentElement.scrollTop
+    if (topDistance < 30 && topDistance >= 0) {
+        let n = 30 - topDistance
+        content.style.paddingTop = content.style.paddingBottom = n + 'px'
+    }
+    let leftDistance = content.getBoundingClientRect().left + document.documentElement.scrollLeft
+    if (leftDistance < 30 && leftDistance >= 0) {
+        let n = 30 - leftDistance
+        content.style.paddingLeft = content.style.paddingRight = n + 'px'
     }
 
-    console.log(content, box)
-
-    box.style.marginTop = '0px'
-    box.style.paddingTop = '0px'
-    content.style.marginTop = '0px'
-    content.style.paddingTop = '0px'
-    if (content.getBoundingClientRect().top < 40) {
-        let n = 30 - content.getBoundingClientRect().top
-        content.style.paddingTop = n + 'px'
-    }
-
-    box.style.marginLeft = '0px'
-    box.style.paddingLeft = '0px'
-    content.style.marginLeft = '0px'
-    content.style.paddingLeft = '0px'
-    if (content.getBoundingClientRect().left < 40) {
-        let n = 30 - content.getBoundingClientRect().left
-        content.style.paddingLeft = n + 'px'
-    }
+    //document.body.style.backgroundColor = container.style.backgroundColor = window.getComputedStyle(content).backgroundColor
 }
 
 
@@ -903,27 +1004,30 @@ let errors = {                              // false positives and negatives
     'meth': { 'mistakes': [], 'misses': [] } 
 }   
 
+let lines = { 
+    'ing': [],
+    'meth': []
+}
+
 function getErrors() {
     /*
     Check for mismatches between RESULTS and the corresponding MATCH (Node) found for each type (Ingredients and Method)
     MISTAKES: false positives
     MISSED: false negatives
     */
-    let lines = { 
-        'ing': recipes.map((rec)=> { return correctLines(rec.ing.text) }).flat(),
-        'meth': recipes.map((rec)=> { return correctLines(rec.meth.text) }).flat()
-    }
-    
+    lines.ing = recipes.map(rec => correctLines(rec.ing.text)).flat().filter(line => line !== ''),
+    lines.meth = recipes.map(rec => correctLines(rec.meth.text)).flat().filter(line => line !== '')
+
     for (let list of ['ing', 'meth']) {
         // MISTAKES
         for (let line of results[list].flat()) {
-            if (!lines[list].flat().includes(line) && line != '') {
+            if (!lines[list].flat().includes(line) && line !== '') {
                 errors[list]['mistakes'].push(line)
             }
         }
         // MISSES
         for (let line of lines[list]) {
-            if (!results[list].flat().includes(line) && line != '') {
+            if (!results[list].flat().includes(line) && line !== '') {
                 errors[list]['misses'].push(line)
             }
         }
@@ -944,11 +1048,6 @@ function saveErrors() {
         }
 
         if (feedback.list.includes(url)) { return }
-        
-        let lines = { 
-            'ing': recipes.map(rec=> { return correctLines(rec.ing.text) }).flat().filter(line=> { return line != '' }),
-            'meth': recipes.map(rec=> { return correctLines(rec.meth.text) }).flat().filter(line=> { return line != '' })
-        }
 
         feedback.list.push(url)
         feedback.lines.ing.push(...lines.ing)
@@ -970,15 +1069,15 @@ function displayFeedback() {
         
         let p1 = document.createElement('p')
         p1.innerText = 'click to copy this text - ' 
-        let copy_btn = document.createElement('button')
-        copy_btn.innerText = 'COPY'
-        p1.appendChild(copy_btn);
+        let copyBtn = document.createElement('button')
+        copyBtn.innerText = 'COPY'
+        p1.appendChild(copyBtn);
         
         let p2 = document.createElement('p')
         p2.innerText = 'Please send to - '
-        let email_btn = document.createElement('button')
-        email_btn.innerText = 'luisbsantos93@gmail.com'
-        p2.appendChild(email_btn)
+        let emailBtn = document.createElement('button')
+        emailBtn.innerText = 'luisbsantos93@gmail.com'
+        p2.appendChild(emailBtn)
 
         let content = document.createElement('div')
         content.id = "recipick-feedback"
@@ -991,10 +1090,10 @@ function displayFeedback() {
         displayFeedbackLines(content, feedback.mistakes, 'mistakes')
         displayFeedbackLines(content, feedback.misses, 'misses')
 
-        copy_btn.addEventListener("click", ()=> {
+        copyBtn.addEventListener("click", ()=> {
             navigator.clipboard.writeText(content.innerText);
         });
-        email_btn.addEventListener('click', ()=> { 
+        emailBtn.addEventListener('click', ()=> { 
             window.open('mailto:luisbsantos93@gmail.com?subject=Recipick%20Feedback');
         });
     });

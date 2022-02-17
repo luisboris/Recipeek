@@ -4,16 +4,18 @@ const info = document.getElementById('info')
 const buttons = document.getElementById('display-section')
 const focus_type = document.getElementsByName('focus-type')
 const recipes_radios = document.getElementById('recipes-radio')
+
 let length = 0      // number of Recipes found
-let has_results = undefined
-let tabId = null
-let options = undefined
-let page_title = ''
+let has_results
+let currentTab
+let options
+
+let t_start
 
 
 // get the active tab (PAGE requested) and user's OPTIONS
 chrome.tabs.query({ active: true, currentWindow: true }, (tab)=> {
-    tabId = tab[0].id
+    currentTab = tab[0]
     
     chrome.storage.sync.get('options', (data)=> {
         options = data.options
@@ -21,27 +23,28 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tab)=> {
         setOptions()
         
         // check if PAGE.js aleady loaded 
-        messageToScript(tabId, 'you there?');
+        messageToScript(currentTab.id, 'you there?'); t_start = Date.now() / 1000
 
         // process messages from PAGE.js
-        chrome.runtime.onMessage.addListener((request)=> { messageFromScript(request) });
+        chrome.runtime.onMessage.addListener(request => { messageFromScript(request) });
 
         // BUTTONS
         for (let button of document.getElementsByTagName('button')) {
-            button.addEventListener('click', (b)=>  { handleButtons(b) });
+            button.addEventListener('click', b =>  handleClick(b));
         }
 
         // RADIOS
         for (let radio of document.getElementsByClassName('radio')) { 
-            radio.addEventListener('change', (r)=> handleRadios(r))
+            radio.addEventListener('change', r => handleClick(r))
         }
 
         // CHECKBOXES
         for (let checkbox of document.getElementsByClassName('checkbox')) { 
-            checkbox.addEventListener('change', (box)=> handleCheckboxes(box));
+            checkbox.addEventListener('change', c => handleClick(c));
         }
     });
 });
+
 
 
 ////// FUNCTIONS
@@ -64,12 +67,14 @@ function setOptions() {
 }
 
 function messageToScript(tabId, message=null, parameter=null, choice=null) {
-    /*
-    Sends a message to PAGE.js
+    /**  Sends a message to PAGE.js
     A) POPUP and SCRIPT both already running -> just send Message
     B) POPUP just opened, SCRIPT not running -> run SCRIPT (B2: URL not accesible) 
-    C) POPUP just opened, SCRIPT running -> create POPUP BUTTONS
-    */
+    C1) POPUP just opened, SCRIPT running, RECIPE undefined -> 
+    C2) POPUP just opened, SCRIPT running, RECIPE defined -> create POPUP BUTTONS */
+
+    console.log(message, parameter);
+
     if (has_results == true) {                                                  // A
         chrome.tabs.sendMessage(tabId, { message, parameter, choice }); 
     }
@@ -83,30 +88,29 @@ function messageToScript(tabId, message=null, parameter=null, choice=null) {
                     }
                 });
             }
-            else {                                                              // C
-                buttons.style.display = 'block'
-                createRecipeRadios(response.lists)
-                has_results = true 
-            }
         });
     }
 }
 
 function messageFromScript(request) {
+    console.log(request.message);
     switch (request.message) {
         case 'results :)': 
             has_results = true;
-            info.innerText = ''
+            info.innerText = 'timing: ' + (Date.now()/1000 - t_start).toFixed(2).toString() + ' seconds'
             buttons.style.display = 'block'
-            createRecipeRadios(request.lists)
+            createRecipeRadios(request.info)
+            createPageList()
             break
-        case 'results undefined':
-        case 'no recipe found':
+        case 'no recipe':
             has_results = false;
             displayStatus(false)
             break
         case 'reset':
             reset()
+            break
+        case 'pagelist changed':
+            createPageList()
             break
     }
 }
@@ -120,52 +124,43 @@ function reset() {
 
 function displayStatus(load) {
     buttons.style.display = 'none'
-    info.innerHTML = load ?
-        `<div class="d-flex align-items-center"><strong>Loading...</strong>
-        <div class="spinner-border ms-auto" role="status" aria-hidden="true"></div></div>` :
-        '<strong>NO RECIPE FOUND :(</strong>'
+    info.innerHTML = load
+        ? '<div class="d-flex align-items-center"><strong>Loading...</strong><div class="spinner-border ms-auto" role="status" aria-hidden="true"></div></div>'
+        : '<strong>NO RECIPE FOUND :(</strong>'
 }
 
-function handleButtons(button) {
-    let message = button.target.classList.contains('display') ? 'display' : null
+function handleClick(input) {
+    let message = input.target.classList.contains('display') ? 'display' : null
+    let parameter, choice
 
-    if (button.target.value == 'reset') { reset() }  
-    if (button.target.classList.contains('btn-message')) {
-        messageToScript(tabId, message, parameter = button.target.value) 
+    switch(input.target.type) {
+        case 'button':
+            parameter = input.target.value
+            if (!input.target.classList.contains('btn-message')) { return }
+            if (input.target.value == 'reset') { reset() }  
+            break
+        case 'checkbox':
+            parameter = input.target.value 
+            choice = input.target.checked ? 'on' : 'off'
+            break
+        case 'radio':
+            parameter = input.target.value.match(/[a-zA-Z.]+/)[0]
+            choice = input.target.value.match(/[^a-zA-Z.]+/)[0] || null
+            break
     }
-}
-
-function handleRadios(radio) {
-    let message = radio.target.classList.contains('display') ? 'display' : null
-    let parameter = radio.target.value.match(/[a-zA-Z.]+/)[0]
-    let choice = radio.target.value.match(/[^a-zA-Z.]+/)[0] || null
 
     chrome.storage.sync.get('options', (data)=> {
         let options = data.options
-        if (radio.target.classList.contains('options')) { options[parameter] = choice }
+        
+        if (input.target.classList.contains('options')) { options[parameter] = choice }
 
-        chrome.storage.sync.set({ options }, ()=> {
-            messageToScript(tabId, message, parameter, choice)
-        })
+        chrome.storage.sync.set({ options }, ()=> { 
+            messageToScript(currentTab.id, message, parameter, choice) 
+        });
     });
 }
 
-function handleCheckboxes(checkbox) {
-    let message = checkbox.target.classList.contains('display') ? 'display' : null
-    let parameter = checkbox.target.value 
-    let choice = checkbox.target.checked ? 'on' : 'off'
-
-    chrome.storage.sync.get('options', (data)=> {
-        let options = data.options
-        if (checkbox.target.classList.contains('options')) { options[parameter] = choice }
-
-        chrome.storage.sync.set({ options }, ()=> {
-            messageToScript(tabId, message, parameter, choice)
-        })
-    });
-}
-
-function createRecipeRadios(lists=true) {
+function createRecipeRadios(info) {
     /*
     TODO
     Create a radio with label for one RECIPE to display and another one to display all of them
@@ -173,47 +168,51 @@ function createRecipeRadios(lists=true) {
     */
     recipes_radios.innerHTML = ''
 
-    createRadio(0, 'recipes', `Recipe`, recipes_radios)
-    if (lists) {
-        createRadio(0, 'recipes.ing', 'Ingredients', recipes_radios)
-        createRadio(0, 'recipes.meth', 'Instructions', recipes_radios)
-    }
-}
+    for (let i in info.lists) {
+        let rec = document.createElement('div')
+        rec.classList.add('btn-group')
+        recipes_radios.appendChild(rec)
+        
+        let index = parseInt(i)+1
 
-function createRecipesRadios(length) {
-    /*
-    Create a radio with label for each RECIPE to display and another one to display all of them
-    Add an eventListener for each
-    */
-    recipes_radios.innerHTML = ''
-
-    for (let i = -1; i < length; i++) {
-        let checkbox = document.createElement('input');
-        checkbox.setAttribute('type', 'radio')
-        checkbox.setAttribute('name', 'toggle')
-        checkbox.setAttribute('value', `recipes${i}`)
-        checkbox.classList.add('btn-check')
-        checkbox.setAttribute('id', `btnradio${i}`)
-        checkbox.setAttribute('autocomplete', 'off')
-
-        let label = document.createElement('label')
-        label.classList.add('btn', 'btn-outline-primary')
-        label.setAttribute('for', `btnradio${i}`)
-        // only 1 recipe
-        if (length == 1) {  
-            label.innerText = 'Peek Recipe'
-            i = 0
+        createRadio(i, 'recipes', `Recipe #${index}`, rec)
+        if (info.lists[i]) {
+            createRadio(i, 'recipes.ing', 'Ingredients', rec)
+            createRadio(i, 'recipes.meth', 'Instructions', rec)
         }
-        // multiple recipes
-        else if (i == -1) { label.innerText = 'Peek All' }
-        else { label.innerText = `Recipe #${i+1}` }
-
-        recipes_radios.appendChild(checkbox)
-        recipes_radios.appendChild(label)
-
-        checkbox.addEventListener('change', (r)=> { handleRadios(r) });
     }
 }
+
+function createPageList() {
+    chrome.storage.sync.get('saved', (lib) => {
+        let page_list = document.getElementById('saved-pages')
+        page_list.innerHTML = '<option selected disabled>Saved Pages</option>'
+        
+        if (!lib.saved) { return }
+
+        let pages = lib.saved
+        for (let pagename in pages) {
+            let option = document.createElement('option');
+            option.setAttribute('value', pages[pagename][0])
+            option.innerHTML = pagename
+            page_list.appendChild(option)
+        }
+
+        page_list.addEventListener('change', option => {
+            chrome.tabs.query({ url: option.target.value }, tabs => { 
+                console.log('page', option.target);
+                tabs[0] ?
+                    chrome.tabs.update(tabs[0].id, { active: true }) :
+                    chrome.tabs.create({ url: option.target.value, index: currentTab.index+1, active: false })
+            });
+        });
+    })
+}
+
+
+
+
+
 
 function createFeedbackRadios(length) {
     const feedback_radio = document.getElementById('feedback-radio')
@@ -247,9 +246,5 @@ function createRadio(index, value, text, parent) {
     parent.appendChild(checkbox)
     parent.appendChild(label)
 
-    checkbox.addEventListener('change', (r)=> { handleRadios(r) });
-}
-
-function createMainTab() {
-    chrome.tabs.create({ url: mainURL, active: true })
+    checkbox.addEventListener('change', (r)=> { handleClick(r) });
 }

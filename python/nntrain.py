@@ -17,7 +17,7 @@ METH_FILE = 'database/input/meth_x_y.csv'
 def main():
     train_model(ING_FILE, 'ing')
     train_model(METH_FILE, 'meth')
-    train_model_combined()
+    #train_model_combined()
 
     # convert models to JavaScript
     for model_file in os.listdir('models/saved_model'):
@@ -44,7 +44,7 @@ def train_model(file, type):
 
     model.add(Dense(2, activation='softmax'))
 
-    opt = tf.keras.optimizers.Adam(lr=0.001, decay=1e-6)
+    opt = tf.keras.optimizers.Adam(learning_rate=0.001, decay=1e-6)
 
     model.compile(
         loss='sparse_categorical_crossentropy',
@@ -76,7 +76,7 @@ def train_model_combined():
 
     model.add(Dense(3, activation='softmax'))
 
-    opt = tf.keras.optimizers.Adam(lr=0.001, decay=1e-6)
+    opt = tf.keras.optimizers.Adam(learning_rate=0.001, decay=1e-6)
 
     model.compile(
         loss='sparse_categorical_crossentropy',
@@ -86,7 +86,7 @@ def train_model_combined():
 
     model.fit(x_train, y_train, epochs=4, validation_data=(x_test, y_test))
 
-    model.save(f'models/saved_model/combined_lines_categorical')
+    model.save(f'model/saved_model/combined_lines_categorical')
 
 
 def load_data(file):
@@ -96,17 +96,16 @@ def load_data(file):
         for row in reader:
             xx.append([
                 int(row[1]),
-                float(row[2]),
+                int(row[2]),
                 float(row[3]),
                 float(row[4]),
                 float(row[5]),
                 float(row[6]),
                 float(row[7]),
                 float(row[8]),
-                int(row[9]),
+                float(row[9]),
                 int(row[10]),
-                int(row[11]),
-                int(row[12])
+                int(row[11])
             ])
             yy.append(int(row[-1]))
         
@@ -126,24 +125,23 @@ def combine_data():
                 if ing_row[0] == meth_row[0]:
                     xx.append([
                         int(ing_row[1]),            # length
-                        float(ing_row[2]),          # ing score
-                        float(ing_row[3]),          # neighbor ing score
-                        float(ing_row[4]),          #     "     "     "
+                        int(ing_row[2]),            # 1st word is a verb
+                        float(ing_row[3]),          # ing score
+                        float(ing_row[4]),          # neighbor ing score
                         float(ing_row[5]),          #     "     "     "
                         float(ing_row[6]),          #     "     "     "
                         float(ing_row[7]),          #     "     "     "
                         float(ing_row[8]),          #     "     "     "
-                        float(meth_row[2]),         # meth score
-                        float(meth_row[3]),         # neighbor meth score
-                        float(meth_row[4]),         #     "     "     "
+                        float(ing_row[9]),          #     "     "     "
+                        float(meth_row[3]),         # meth score
+                        float(meth_row[4]),         # neighbor meth score
                         float(meth_row[5]),         #     "     "     "
                         float(meth_row[6]),         #     "     "     "
                         float(meth_row[7]),         #     "     "     "
                         float(meth_row[8]),         #     "     "     "
-                        int(ing_row[9]),            # title pattern
+                        float(meth_row[9]),         #     "     "     "
                         int(ing_row[10]),           # ing pattern 1
-                        int(ing_row[11]),           # ing pattern 2
-                        int(ing_row[12]),           # meth pattern
+                        int(ing_row[11])            # ing pattern 2
                     ])
                     category = int(meth_row[-1] + ing_row[-1], 2)
                     yy.append(category if category in [0,1,2] else 0)

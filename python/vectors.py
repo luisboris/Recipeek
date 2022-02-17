@@ -2,12 +2,11 @@ import re
 import os
 import csv
 
-from nltk.data import load
 from helpers import *
 
 def main():
     # read vectors and tokens files into dictionaries
-    ing_tokens, meth_tokens = load_data()
+    ing_tokens, meth_tokens, maxs = load_data()
     ing_vectors, meth_vectors = list(), list()
     
     # check for files with LISTS parsed
@@ -24,6 +23,11 @@ def main():
 
                 for sentence, x, y in zip(original, data, binary_labels):
                     ing_vectors.append([sentence] + x + [y])
+                    # max of all
+                    if x[0] > int(maxs[0]):
+                        maxs[0] = x[0]
+                    if x[0] > int(maxs[1]) and y == 1:
+                        maxs[1] = x[0]
             
                 labels_file = re.sub('.txt', ' labels.txt', ing_file)
                 with open(f'database/parsed/{labels_file}', 'w') as r:
@@ -37,6 +41,8 @@ def main():
 
                 for sentence, x, y in zip(original, data, binary_labels):
                     meth_vectors.append([sentence] + x + [y])
+                    if x[0] > int(maxs[2]) and y == 1:
+                        maxs[2] = x[0]
                 
                 labels_file = re.sub('.txt', ' labels.txt', meth_file)
                 with open(f'database/parsed/{labels_file}', 'w') as r:
@@ -57,7 +63,12 @@ def load_data():
     with open('database/tokens/meth_tokens.csv', 'r') as r4:
         reader4 = csv.reader(r4)
         meth_tokens = {row[0]: int(row[1]) for row in reader4}
-    return ing_tokens, meth_tokens
+    
+    maxs = list()
+    with open('database/maxs.txt', 'r') as r5:
+        maxs = r5.read().split('\n')
+
+    return ing_tokens, meth_tokens, maxs
     
 
 def save_data(ing_vectors, meth_vectors):
@@ -80,11 +91,9 @@ def load_sentences(file):
 def vectorize_yy_binary(original, list):
     result = []
     # TODO clean false positives???
-    padded = [0] + original + [0]
     for i in range(len(original)):
         result.append(
             1 if original[i] in list else 0
-            #1 if original[i] in list and (padded[i] in list or padded[i+2] in list) else 0
         )
     return result
 

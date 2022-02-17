@@ -1,14 +1,22 @@
 import os
 import re
 from helpers import *
+import spacy
 
 def main():
     unglad()
     
 def unglad():
-    for file in os.listdir('database/unparsed'):
-        new_name = re.sub('!', '', file, 1)
-        os.rename(f'database/unparsed/{file}', f'database/unparsed/!{file}')
+    with open(f'database/unparsed/!0267.txt', 'r', encoding='utf-8') as r:
+        sentences = r.read().split('\n')
+        
+        nlp = spacy.load('en_core_web_sm')
+        print(nlp.pipe_names)
+        for sentence in sentences:
+            doc = list(nlp(sentence))
+            if doc and doc[0].pos_ == 'VERB':
+                print(doc[0].pos_, sentence)
+        
 
 def analyse():
     ### count how many stopwords in method section

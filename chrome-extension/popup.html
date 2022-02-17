@@ -11,21 +11,30 @@
     <body>
         <!-- BUTTONS -->
         <div id="display-section" class="buttons">
-            <button type="button" class="btn btn-primary btn-message display" value="reset">Reset</button>
+            <button type="button" class="btn btn-primary btn-message clickable" value="reset">Reset</button>
             <div id="button-section" class="btn-group" role="group" aria-label="Basic example">
-                <button type="button" class="btn btn-primary btn-message display" value="zoom-in">Show less</button>
-                <button type="button" class="btn btn-primary btn-message display" value="zoom-out">Show more</button>
+                <button type="button" class="btn btn-primary btn-message clickable" value="zoom-in">Show less</button>
+                <button type="button" class="btn btn-primary btn-message clickable" value="zoom-out">Show more</button>
             </div>
             <br>
             
             <div id="radio-section" class="btn">
-                <div id="recipes-radio" class="btn-group" role="group" aria-label="Basic radio toggle button group">
+                <div id="recipes-radio" role="group" aria-label="Basic radio toggle button group">
                 </div>
             </div>
             <br>
 
             <div id="actions2">
-                <button type="button" class="btn btn-primary btn-message" value="print">Print</button>
+                <div class="btn-group">  
+                    <select class="form-select" aria-label="Default select example" id="saved-pages">
+                    </select>
+                </div>
+                <div class="btn-group">    
+                    <button type="button" class="btn btn-primary btn-message clickable" value="save">Save</button>
+                </div>
+                <div class="btn-group">    
+                    <button type="button" class="btn btn-primary btn-message clickable" value="delete">Delete</button>
+                </div>
             </div>
             <br>
         </div>
@@ -34,40 +43,46 @@
         <!-- INFO -->
         <div id="info" class="info"></div>
         <hr>
+        <div id="info2" class="info"></div>
 
         <!-- TODO -->
-        <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#options-collapse" aria-expanded="false" aria-controls="collapseExample">
+        <button type="button" class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#options-collapse" aria-expanded="false" aria-controls="collapseExample">
             OPTIONS
         </button>
-        <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#feedback-collapse" aria-expanded="false" aria-controls="collapseExample">
+        <button type="button" class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#feedback-collapse" aria-expanded="false" aria-controls="collapseExample">
             FEEDBACK
         </button>
+        <div class="btn-group">  
+            <button type="button" class="btn btn-primary btn-message clickable" value="print">Print</button>
+        </div>
 
         <!-- OPTIONS -->
-        <div class="collapse" id="options-collapse">
-            <div class="card card-body">
-                <div class="radio-group" id="focus">
-                    <div class="form-check">
-                        <input class="form-check-input radio display options" type="radio" name="recipe-display" id="1" value="focus1" checked>
-                        <label class="form-check-label" for="section">Show entire section</label>
+        <div id="options-section" class="options">
+            <div class="collapse" id="options-collapse">
+                <div class="card card-body">
+                    <div class="radio-group" id="focus">
+                        <div class="form-check">
+                            <input type="radio" class="form-check-input radio options clickable" name="recipe-display" id="1" value="focus1" checked>
+                            <label class="form-check-label" for="section">Show entire section</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="radio" class="form-check-input radio options clickable" name="recipe-display" id="2" value="focus2">
+                            <label class="form-check-label" for="lists">Show only Ingredients and Instructions</label>
+                        </div>
                     </div>
-                    <div class="form-check">
-                        <input class="form-check-input radio display options" type="radio" name="recipe-display" id="2" value="focus2">
-                        <label class="form-check-label" for="lists">Show only Ingredients and Instructions</label>
+                    <br>
+                    <div class="form-check form-switch">
+                        <input type="checkbox" class="form-check-input checkbox options clickable" role="switch" value="images">
+                        <label class="form-check-label" for="images">Hide Images</label>
                     </div>
-                </div>
-                <br>
-                <div class="form-check form-switch">
-                    <input class="form-check-input checkbox options" type="checkbox" role="switch" value="images">
-                    <label class="form-check-label" for="images">Hide Images</label>
-                </div>
-                <div class="form-check form-switch">
-                    <input class="form-check-input checkbox options" type="checkbox" role="switch" value="ads">
-                    <label class="form-check-label" for="images">Hide Ads</label>
-                </div>
-                <div class="form-check form-switch">
-                    <input class="form-check-input checkbox options" type="checkbox" role="switch" value="compact">
-                    <label class="form-check-label" for="compact">Compact Display</label>
+                    <div class="form-check form-switch">
+                        <input type="checkbox" class="form-check-input checkbox options clickable" role="switch" value="videos">
+                        <label class="form-check-label" for="images">Hide Videos</label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input type="checkbox" class="form-check-input checkbox options clickable" role="switch" value="compact">
+                        <label class="form-check-label" for="compact">Compact Display</label>
+                    </div>
                 </div>
             </div>
         </div>
@@ -99,7 +114,7 @@
                                     Are you sure every list is correct?
                                 </div>
                                 <div class="modal-footer">
-                                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" value="save">Yes</button>
+                                    <button type="button" class="btn btn-primary clickable btn-message" data-bs-dismiss="modal" value="save-feedback">Yes</button>
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Check again</button>
                                 </div>
                             </div>
@@ -124,7 +139,7 @@
                                     Are you sure all the lists are wrong?
                                 </div>
                                 <div class="modal-footer">
-                                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" value="wrong">Yes</button>
+                                    <button type="button" class="btn btn-primary clickable btn-message" data-bs-dismiss="modal" value="wrong-feedback">Yes</button>
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Check again</button>
                                 </div>
                             </div>
@@ -134,8 +149,8 @@
                         
                     <h6>
                         When you're tired of checking recipes:
-                        <button type="button" class="btn btn-outline-primary" value="feedback-show">SHOW FEEDBACK</button>
-                        <button type="button" class="btn btn-outline-primary" value="feedback-reset">RESET FEEDBACK</button>
+                        <button type="button" class="btn btn-outline-primary clickable btn-message" value="feedback-show">SHOW FEEDBACK</button>
+                        <button type="button" class="btn btn-outline-primary clickable btn-message" value="feedback-reset">RESET FEEDBACK</button>
                     </h6>
                     </div>
                 </div>

@@ -1,15 +1,14 @@
-import re
+import csv
 import os
-import nltk
+import re
+
 import numpy as np
 import tensorflow as tf
-from tensorflow import keras
-from helpers import *
-import csv
-#from keras.preprocessing.sequence import TimeseriesGenerator
 from keras.layers import LSTM, Dense, Dropout
-from keras.models import Sequential 
+from keras.models import Sequential
+from tensorflow import keras
 
+from helpers import *
 
 ING_FILE = 'database/input/ing_x_y.csv'
 METH_FILE = 'database/input/meth_x_y.csv'
@@ -36,8 +35,8 @@ def main():
     meth_prediction_lines = load_input_data(n, 'meth')
     meth_prediction = meth_model.predict(meth_prediction_lines)
 
-    combined_prediction_lines = combine_data(ing_prediction_lines, meth_prediction_lines)
-    combined_prediction = combined_model.predict(combined_prediction_lines)
+    #combined_prediction_lines = combine_data(ing_prediction_lines, meth_prediction_lines)
+    #combined_prediction = combined_model.predict(combined_prediction_lines)
     
     # get results
     ing_result = [
@@ -54,12 +53,12 @@ def main():
     print('METHOD PREDICTION\nINPUT SHAPE:', np.array(meth_prediction_lines).shape)
     print_prediction(n, meth_prediction, meth_result)
 
-    combined_result = [
-        prediction.tolist().index(max(prediction)) 
-        for prediction in combined_prediction
-    ]
-    print('COMBINED PREDICTION\nINPUT SHAPE:', np.array(combined_prediction_lines).shape)
-    print_prediction(n, combined_prediction, combined_result)
+    #combined_result = [
+    #    prediction.tolist().index(max(prediction)) 
+    #    for prediction in combined_prediction
+    #]
+    #print('COMBINED PREDICTION\nINPUT SHAPE:', np.array(combined_prediction_lines).shape)
+    #print_prediction(n, combined_prediction, combined_result)
 
 
 
@@ -90,31 +89,32 @@ def load_input_data(n, type):
         reader1 = csv.reader(r1)
         tokens = {row[0]: int(row[1]) for row in reader1}
         with open(f'database/unparsed/!{n}.txt', 'r', encoding='utf-8') as r2:
-            file_vectors = vectorize(r2.read().split('\n'), tokens)
+            lines = r2.read().split('\n')
+            file_vectors = vectorize(lines, tokens)
             normalize(file_vectors)
+
             return file_vectors
 
 def combine_data(ing, meth):
     return [
-        [ ing_row[0],    # length
-        ing_row[1],      # ing score
-        ing_row[2],      # neighbor ing score
-        ing_row[3],      #     "     "     "
-        ing_row[4],      #     "     "     "
-        ing_row[5],      #     "     "     "
-        ing_row[6],      #     "     "     "
-        ing_row[7],      #     "     "     "
-        meth_row[1],     # meth score
-        meth_row[2],     # neighbor meth score
-        meth_row[3],     #     "     "     "
-        meth_row[4],     #     "     "     "
-        meth_row[5],     #     "     "     "
-        meth_row[6],     #     "     "     "
-        meth_row[7],     #     "     "     "
-        ing_row[8],      # title pattern
-        ing_row[9],      # ing pattern 1
-        ing_row[10],     # ing pattern 2
-        meth_row[9] ]    # meth pattern
+        [ int(ing_row[0]),          # length
+        int(ing_row[1]),            # 1st word is a verb
+        float(ing_row[2]),          # ing score
+        float(ing_row[3]),          # neighbor ing score
+        float(ing_row[4]),          #     "     "     "
+        float(ing_row[5]),          #     "     "     "
+        float(ing_row[6]),          #     "     "     "
+        float(ing_row[7]),          #     "     "     "
+        float(ing_row[8]),          #     "     "     "
+        float(meth_row[2]),         # meth score
+        float(meth_row[3]),         # neighbor meth score
+        float(meth_row[4]),         #     "     "     "
+        float(meth_row[5]),         #     "     "     "
+        float(meth_row[6]),         #     "     "     "
+        float(meth_row[7]),         #     "     "     "
+        float(meth_row[8]),         #     "     "     "
+        int(ing_row[9]),            # ing pattern 1
+        int(ing_row[10]) ]          # ing pattern 2
         for ing_row, meth_row in zip(ing, meth)
     ]
 
