@@ -40,15 +40,12 @@ chrome.runtime.onMessage.addListener(request => {
 
         let vv = Date.now()/1000
 
-        const ingVectors = vectorize(lines, ingTokens, methTokens).ing
-        const methVectors = vectorize(lines, methTokens, ingTokens).ing
-
-        console.log(ingVectors);
+        const vectors = vectorize(lines, ingTokens, methTokens)
 
         let p1 = Date.now()/1000
 
-        const ingPrediction = await predict(ingVectors, ING_SAVED_MODEL)
-        const methPrediction = await predict(methVectors, METH_SAVED_MODEL)
+        const ingPrediction = await predict(vectors.ing, ING_SAVED_MODEL)
+        const methPrediction = await predict(vectors.meth, METH_SAVED_MODEL)
 
         let p2 = Date.now()/1000
 
@@ -139,7 +136,6 @@ function vectorize(lines, ingTokens, methTokens) {
             line.match(ING_PATTERNS[0]) ? 1 : 0,
             line.match(ING_PATTERNS[1]) ? 1 : 0
         )
-        console.log(line, ingVectors[i]);
     })
 
     return normalize(ingVectors, methVectors, maxs)
