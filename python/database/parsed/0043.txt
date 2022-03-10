@@ -5,13 +5,7 @@ Gastronomy
 Our Lynx
 Where To Eat / Stay
 PT EN ES FR
-__
-1]
 PT EN ES FR
-__
-2]
-3]
-4]
 Bread Panada of Partridge 
 MONDAY, 11 de april 
 Ingredients: 1 red-leggeg partridge | 1 onion | garlic | 1 dl olive oil | 1 coriander sauce | 1/4 pepper | 4 eggs | bread | salt
@@ -26,23 +20,15 @@ MONDAY, 11 de april
 Red Deer stew 
 FRIDAY, 01 de april 
 Wild fried rabbit 
-5]
 1 
 Help us improve 
-__
 Praça Luis de Camões 
 7750-329 Mértola
-__
 cctv@cm-mertola.pt
-__
 351 286 610 100 
 Ext: 1123)
 Capital da Caça TV 
 All rights reserved
-turismo-portugal.png][6] ![alentejo-ribatejo.png][7] ![365.png][8]
-Canal nº 141166 – Mértola - Capital da Caça TV no MEO Kanal][9]
-__
-10]
 THE HUNT IS ALSO THIS! 
 Send us the photos / videos of your day of hunting and be part of this project. It's easy to get to us! 
 Know more! 
@@ -58,13 +44,3 @@ Notes:
 1) After editorial validation, the photos / videos are available in the Capital of the Hunting Tv.
 2) All photos that have an element that identifies that were captured in the Capital of the Hunt, county of Mértola, are automatically enabled to a lottery where you can win some prizes!
 SUBMIT
-1]: /resources/img/logo.png
-2]: /resources/img/bg/espiga1.png
-3]: /resources/img/bg/espiga2.png
-4]: https://asset.skoiy.com/1d7dd04fe934e01757cc0ecc866c21e5/64a95139ac1fd2952b4ea67566879138.jpg
-5]: /resources/img/loading.gif
-6]: /resources/img/turismo-portugal.png
-7]: /resources/img/alentejo-ribatejo.png
-8]: /resources/img/365.png
-9]: http://kanal.pt/badges/141166 (Canal nº 141166 – Mértola - Capital da Caça TV no MEO Kanal)
-10]: /resources/img/btn/btn_foto_video-en.jpg

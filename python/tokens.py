@@ -34,10 +34,10 @@ def main():
     move()
     
     # update tokens in .js file
-    jstokens(ing_tokens, meth_tokens)
+    jstokens('../extension/scripts/background.js', ing_tokens, meth_tokens)
 
 
-### FUNCTIONS            
+### FUNCTIONS
 def load_tokens(type):
     tokens = dict()
     with open(f'database/tokens/{type}_tokens.csv', 'r') as r:
@@ -47,8 +47,8 @@ def load_tokens(type):
     return tokens
 
 def update_tokens(file, tokens, score=1):
-    for sentence in get_sentences(file):
-        for word in get_tokens(sentence):
+    for line in get_lines(file):
+        for word in get_tokens(line):
             if word in tokens:
                 tokens[word] = tokens[word] + score
             else:
@@ -62,24 +62,23 @@ def update_csv(ing_tokens, meth_tokens):
         tokens = ing_tokens if type == 'ing' else meth_tokens
         words = list(tokens.keys())
         words.sort(reverse=True, key=lambda word: tokens[word])
-        with open(f'database/tokens/{type}_tokens.csv', 'w', newline='') as w:
+        with open(f'database/tokens/{type}_tokens.csv', 'w', encoding='utf-8', newline='') as w:
             writer = csv.writer(w, delimiter=',')
             for word in words:
                 writer.writerow([word, tokens[word]])
         
-def get_sentences(file):
+def get_lines(file):
     with open(file, encoding='utf-8') as f:
-        sentences = []
-        for sentence in f.read().split('\n'):
+        lines = []
+        for line in f.read().split('\n'):
             
             # ignore empty lines
-            if re.search('[a-zA-Z]', sentence) is None:
+            if re.search('[a-zA-Z]', line) is None:
                 continue
             
             # clean unwanted symbols
-            sentences.append(re.sub('^[\W]+', '', sentence))
-    
-    return sentences
+            lines.append(re.sub('^[\W]+', '', line))
+    return lines
 
 def tokenize_feedback(ing_tokens, meth_tokens):
     update_tokens('database/feedback/unparsed/ing_lines.txt', ing_tokens, score=1)
@@ -103,18 +102,23 @@ def move():
             # check for both ingredients and method parsed
             num = re.search('[0-9]+', file)[0]
             if f'{num} - Ingredients.txt' in os.listdir('database/unparsed') and f'{num} - Method.txt' in os.listdir('database/unparsed'):
-                os.rename(f'database/unparsed/!{num}.txt', f'database/parsed/{num}.txt')
-                os.rename(f'database/unparsed/{num} - Ingredients.txt', f'database/parsed/{num} - Ingredients.txt')
-                os.rename(f'database/unparsed/{num} - Method.txt', f'database/parsed/{num} - Method.txt')
+                
+                index = next_index(os.listdir('database/parsed'))
+                
+                # transfer files
+                os.rename(f'database/unparsed/!{num}.txt', f'database/parsed/{index}.txt')
+                os.rename(f'database/unparsed/{num} - Ingredients.txt', f'database/parsed/{index} - Ingredients.txt')
+                os.rename(f'database/unparsed/{num} - Method.txt', f'database/parsed/{index} - Method.txt')
+        
         except Exception as e:
             print(e, '\ncould not move', file)
 
-def jstokens(ing_tokens, meth_tokens):
+def jstokens(file, ing_tokens, meth_tokens):
     """
     Save tokens in js syntax and indentation
     Save only tokens with score > 1
     """
-    with open('../chrome-extension/background.js', 'r', encoding='utf-8') as r:
+    with open(file, 'r', encoding='utf-8') as r:
         js_file = r.read()
         string = """
 function setTokens() {
@@ -153,7 +157,7 @@ function setTokens() {
 
         js_file = re.sub('\nfunction.+', string, js_file, flags=re.DOTALL)
 
-    with open('../chrome-extension/background.js', 'w', encoding='utf-8') as w:
+    with open(file, 'w', encoding='utf-8') as w:
         w.write(js_file)
 
 

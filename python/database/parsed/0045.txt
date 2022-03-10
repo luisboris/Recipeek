@@ -1,6 +1,5 @@
 https://rasamasa.com/en/recipes/panada
 Some of the content in this page is translated with the help of Google Translate 
-Toggle navigation ![][1]
 Recipes
 Store
 Tips
@@ -54,17 +53,14 @@ Steps
 3. Content: saute ground spices until fragrant. Add lemongrass and pandan belt. Enter suir tuna and stir. Pour coconut milk, stirring constantly until thick and mature. Add basil, stir quickly until wilted. Lift. Set aside.
 4. Solution: Kempeskan dough, for 12. Take one, round and thin rollers. Put the contents of taste, fold in half, glue the edges with a twist edges.
 5. Fried bread until cooked brownish yellow. Drain. Serve. 
-Dapur Rasamasa][2]
 Dapur Rasamasa
 This recipe has been tested in Dapur Rasamasa
-bimoli-kilaunya-hidup-semangat][3]
 Share
 Panada
 127
 Tweet
 Comment (0)
 Email to friend 
-4]
 Panada
 This bread comes from Manado. The word Panada originated from the Portuguese word “empada” which means bread filled with something savory, such as beef or cheese. In Manado, spicy smoked tuna is a common filling.
 Read more: https://rasamasa.com/en/recipes/panada
@@ -72,7 +68,6 @@ Your Name
 Email Address
 To send multiple emails, separate emails with a coma, eg john@example.com, doe@example.com
 Send
-logo-footer.png][5]
 Rasamasa
 About Us
 How To Shop
@@ -87,7 +82,6 @@ Join our community
 Copyrights PT Rasa Masa
 Privacy Policy
 Terms & Conditions
-6] Loading
 Join our team
 Fill all the required fields below
 Name 
@@ -120,9 +114,3 @@ Website
 http://
 Message 
 Submit
-1]: https://rasamasa.com/uploads/settings/logo.png
-2]: https://rasamasa.com/uploads/filemanager/source/Foto_Profil/rasamasa-profil-dapur-rasamasa.jpg
-3]: https://rasamasa.com/uploads/filemanager/source/Banner_Ad/bimoli-rasamasa-ad-banner-728x90px.jpg
-4]: https://rasamasa.com/uploads/filemanager/source/Resep_Kita/rasamasa-thumbnail-resep-panada.jpg
-5]: https://rasamasa.com/frontend/themes/default/img/logo-footer.png
-6]: https://rasamasa.com/frontend/themes/default/img/icon-rasamasa-small.png

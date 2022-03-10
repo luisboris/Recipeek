@@ -1,5 +1,4 @@
 https://www.bbc.co.uk/food/recipes/marys_florentines_49833
-1]
 Homepage
 Accessibility links
 Skip to content
@@ -42,7 +41,6 @@ Techniques
 Your Favourites
 Mary’s florentines
 Loading
-Mary’s florentines][2]
 Preparation time
 less than 30 mins
 Cooking time
@@ -53,7 +51,6 @@ Dietary
 Vegetarian
 Try making these chewy, luxurious biscuits at home. Careful weighing of the ingredients is the key to success. 
 Equipment and preparation: for this recipe you will need a sugar thermometer and three baking trays. 
-3]
 By Mary Berry
 From The Great British Bake Off
 Share
@@ -97,20 +94,16 @@ Method
 Christmas
 Recipes
 Related Recipes
-4]
 Lemon biscuits
 By Benjamina Ebuehi
 See more Best biscuit recipes (24)
-5]
 Spiced Christmas biscuits with easy icing
 By Philippa Davis
 See more biscuit recipes (56)
-6]
 Cherry scones
 By Sara Danesin Medio
 See more glace cherries recipes (53)
 This recipe is from...
-7]
 The Great British Bake Off
 Masterclass 1
 BBC One
@@ -150,11 +143,4 @@ Accessibility Help
 Parental Guidance
 Contact the BBC
 Get Personalised Newsletters
-_Copyright © 2021 BBC._ The BBC is not responsible for the content of external sites. Read about our approach to external linking.
-1]: https://a1.api.bbc.co.uk/hit.xiti?&col=1&from=p&ptag=js&s=598253&p=Recipes::food.recipes.marys_florentines_49833.page&x1=[urn:bbc:food:recipes.marys_florentines_49833]&x2=[responsive]&x3=[bbc_website]&x4=[en]&x7=[article]&x8=[reverb-3.3.0-nojs]&x11=[FOOD]&x12=[FOOD]
-2]: https://ichef.bbci.co.uk/food/ic/food_16x9_832/recipes/marys_florentines_49833_16x9.jpg
-3]: https://ichef.bbci.co.uk/food/ic/food_1x1_72/chefs/mary_berry_1x1.jpg
-4]: https://ichef.bbci.co.uk/food/ic/food_16x9_832/recipes/lemon_biscuits_71853_16x9.jpg
-5]: https://ichef.bbci.co.uk/food/ic/food_16x9_832/recipes/christmas_cinnamon_45950_16x9.jpg
-6]: https://ichef.bbci.co.uk/food/ic/food_16x9_832/recipes/scones_35420_16x9.jpg
-7]: https://ichef.bbci.co.uk/images/ic/832xn/p023w4qg.jpg
+Copyright © 2021 BBC._ The BBC is not responsible for the content of external sites. Read about our approach to external linking.

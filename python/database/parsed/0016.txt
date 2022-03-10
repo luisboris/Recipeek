@@ -6,7 +6,6 @@ Story Saved
 To revisit this article, visit My Profile, then View saved stories.
 Close Alert
 Close
-Bon Appétit][1]
 Story Saved
 To revisit this article, select My Account, then View saved stories
 Close Alert
@@ -34,7 +33,6 @@ Read ReviewsTriangle
 Email
 Pinterest
 Print
-creamy polenta recipe][2]
 Photo by Alex Lau, food styling by Susie Theodorou, prop styling by Elizabeth Jaime
 Email
 Pinterest
@@ -121,7 +119,6 @@ BadPolenta
 USA
 4/5/2020
 Explore Bon AppétitPolentaMilkCornmealParmesanButter
-Bon Appétit][3]
 Recipes you want to make. Cooking advice that works. Restaurant recommendations you trust.
 Facebook
 Twitter
@@ -142,6 +139,3 @@ Condé Nast Store
 Condé Nast Spotlight
 2021 Condé Nast. All rights reserved. Use of this site constitutes acceptance of our User Agreement and Privacy Policy and Cookie Statement and Your California Privacy Rights. _Bon Appétit_ may earn a portion of sales from products that are purchased through our site as part of our Affiliate Partnerships with retailers. The material on this site may not be reproduced, distributed, transmitted, cached or otherwise used, except with the prior written permission of Condé Nast. Ad Choices
 Food Innovation Group
-1]: /verso/static/bon-appetit/assets/logo-header.29b3f7bcdadf3b208a05a3ab761757ab663c1e12.svg
-2]: https://assets.bonappetit.com/photos/5dcc733b9767f4000885cc43/1:1/w_2560%2Cc_limit/1219-Elena-Apres-Creamy-polenta.jpg
-3]: /verso/static/bon-appetit/assets/logo-reverse.adafbb9b583b565c29b99cfbd36ab80f108eac59.svg
