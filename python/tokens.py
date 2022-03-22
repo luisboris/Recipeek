@@ -155,7 +155,7 @@ function setTokens() {
 }
         """
 
-        js_file = re.sub('\nfunction.+', string, js_file, flags=re.DOTALL)
+        js_file = re.sub('\nfunction setTokens.+', string, js_file, flags=re.DOTALL)
 
     with open(file, 'w', encoding='utf-8') as w:
         w.write(js_file)

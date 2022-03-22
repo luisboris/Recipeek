@@ -10,7 +10,28 @@ chrome.runtime.onInstalled.addListener( () => {
     setTokens()
 });
 
+/** Extension Icon clicked */
+chrome.browserAction.onClicked.addListener( function(){
+	chrome.tabs.query({ active: true, currentWindow: true }, (tab)=> {
 
+		// send message to page.js (content script)
+		chrome.tabs.sendMessage(tab[0].id, { message: 'you there?' }, ()=> { 
+
+			if (chrome.runtime.lastError) {  // no response means page.js is not yet executed
+				chrome.tabs.executeScript({ file: 'page.js' }, ()=> {
+					
+					if (chrome.runtime.lastError) {  // cannot execute scripts in this page
+						window.alert('No picking in here!') 
+					} else {
+						chrome.tabs.insertCSS(tab[0].id, { file: 'recipick.css' });
+					}
+				});
+			} 
+		});
+    });
+});
+
+/** Each token and its Score for each LIST type (to use in predict.js) */
 function setTokens() {
     chrome.storage.local.set({ tokens: {
         ing: { 

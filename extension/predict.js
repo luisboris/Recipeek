@@ -56,7 +56,7 @@ function main() {
                     results.meth.push(lines[i])
                     if (results.all.includes(lines[i])) { 
                         results.repeated.push(lines[i]) 
-                        results.repScores.push([ingPrediction[i][1], methPrediction[i][1]])
+                        results.repScores.push({ ing: ingPrediction[i][1], meth: methPrediction[i][1] })
                     } else { 
                         results.all.push(lines[i]) 
                     }
@@ -245,7 +245,7 @@ function vectorize(lines, ingTokens, methTokens) {
 /** Delete empty lines and doubles spaces from text; divide text in lines; delete symbols at the beggining of each line  
  * Search for list entries which are broken in different lines (e.g: "2\nlemons", "1 cup\nwater") and concatenate them in a single line. */
 function correctLines(text) {
-    let lines = text.toLowerCase().replaceAll(/^[^\w¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]/gm, '').replaceAll('\n\n', '\n').replaceAll(/ +/g, ' ').split('\n')
+    let lines = text.toLowerCase().replaceAll(/^[^\w¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]+/gm, '').replaceAll('\n\n', '\n').replaceAll(/ +/g, ' ').split('\n')
     
     let correctedLines = []
     for (let i = 0, len = lines.length; i < len; i++) {
@@ -358,7 +358,7 @@ async function predict(vectors, modelPath) {
 function sendResults(results, url) {
     chrome.tabs.query({ url }, tabs => {
         if (tabs[0]) {
-            chrome.tabs.sendMessage(tabs[0].id, { message: "results", results, time:m2 })
+            chrome.tabs.sendMessage(tabs[0].id, { message: "results", results })
         }
         else {  // invalid url
             let validUrl = url.replace(/#.*/, '')

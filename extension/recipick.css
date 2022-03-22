@@ -1,0 +1,161 @@
+.recipick-frame {
+    position: fixed; 
+    overflow: auto;
+    max-height: 95vh;
+    max-width: 70vw;
+    z-index: 999999999; 
+    top: 5px; 
+    right: 30px; 
+    padding: 15px; 
+    background-color: rgb(255, 255, 255);
+    border: 5px double rgb(200, 200, 200); 
+}
+
+.recipick#close {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+}
+
+.recipick#close, .recipick#delete {
+    display: inline-block;
+    font-family: monospace;
+    font-size: large;
+    text-decoration: solid;
+    min-width: unset;
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+    padding: 0px;
+}
+
+.recipick-title {
+    text-align: center; 
+    font-size: 23px; 
+    padding: 4px 0px 12px;
+    margin-bottom: 15px; 
+    border-bottom: 3px double; 
+}
+
+.recipick-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgb(200, 200, 200); 
+}
+
+.recipick-buttons > * {
+    display: flex;
+    gap: 2px;
+}
+
+.recipick-buttons-2 {
+    display: none;
+    justify-content: space-between;
+    gap: 0 2px;
+}
+
+.recipick-buttons-2 :nth-last-child(3) {
+    min-width: 10px;
+    flex: 1;  /* to occupy all the negative blank space in flex line */
+}
+
+.recipick-options, .recipick-saved {
+    display: none;
+    font-size: small;
+    border: 2px groove; 
+    padding: 5px; 
+    margin-top: 10px; 
+}
+
+.recipick-saved {
+    flex-direction: column;
+    overflow: auto;
+    font-size: small;
+    max-height: 50vh;
+    max-width: 60vw;
+    padding-top: 0;
+}
+
+.recipick-saved > :first-child {
+    display: flex;
+    align-items: center;
+    min-height: 40px;
+    height: 50px;
+    margin-bottom: 10px;
+}
+
+.recipick-options {
+    display: none;
+    flex-direction: column;
+}
+
+.recipick-options > * {
+    display: flex;
+    height: fit-content;
+}
+
+.recipick-options > :nth-child(3) {
+    margin: 15px 0;
+}
+
+ul.recipick {
+    list-style-type: none; 
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    width: max-content;
+    padding: 0;
+    margin: 0; 
+}
+
+li.recipick {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 10px;
+    min-height: 30px;
+    height: 30px;
+    padding: 0px 4px;
+    margin: 1px 0;
+}
+
+button.recipick {
+    vertical-align: top; 
+    text-align: center; 
+    font-size: 12px; 
+    min-width: 80px; 
+    height: 30px;
+    min-height: 0;
+    max-height: 30px;
+    padding: 4px; 
+}
+
+input.recipick {
+    all: revert;
+    visibility: visible;
+    min-height: 10px;
+    min-width: 10px;
+    max-width: 30px;
+    margin: 0px 5px;
+}
+
+select.recipick {
+    width: fit-content;
+    height: 30px;
+    padding: 0
+}
+
+p.recipick {
+    text-align: center;
+    font-size: medium;
+    text-decoration: underline;
+    flex: 99 1 auto
+}
+
+label.recipick {
+    margin: 0;
+}
