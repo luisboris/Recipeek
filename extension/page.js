@@ -185,7 +185,7 @@ let frame = {
 }
 
 
-
+insertSandbox()
 insertFrame()
 
 // wait for document to finish loading
@@ -197,18 +197,30 @@ if (document.readyState !== 'complete') {
 //// MAIN FUNCTIONS ////
 function main() {
 
-    chrome.runtime.sendMessage({   // message to predict.js
-        message: "innerText", 
-        text:  document.body.innerText, 
-        url: window.location.href
+    window.addEventListener('message', event => {  // a little chat with predict.js
+
+        if (event.data.message === 'predict.js ready') { 
+            chrome.storage.local.get('tokens', lib => { 
+                const ingTokens = lib.tokens['ing']
+                const methTokens = lib.tokens['meth']
+    
+                event.source.postMessage({   // message to predict.js (inside sandbox.html)
+                    message: "innerText", 
+                    text:  document.body.innerText, 
+                    url: window.location.href,
+                    ingTokens, 
+                    methTokens
+                }, '*');
+            });
+        }
+        
+        // message from predict.js with prediction RESULTS
+        if (event.data.message === 'results') { processResults(event.data.results) }
     });
 
     chrome.runtime.onMessage.addListener(request => {
         // message from background.js when Extension Icon is clicked -> confirm this file is loading/loaded
         if (request.message === 'you there?') { toggleFrame() }
-
-        // message from predict.js with prediction RESULTS
-        if (request.message === 'results') { processResults(request.results) }
     });
 
     setDisplayProperties()  
@@ -674,6 +686,15 @@ function findMultipleRecipes() {
 
 
 //// SECONDARY FUNCTIONS ////
+/** insert iframe in page with sandbox.html -> Sandbox to run TensorFlow and predict.js */
+function insertSandbox() {
+    const sandbox = document.createElement('iframe')
+    sandbox.id = 'recipick-sandbox'
+    sandbox.src = chrome.runtime.getURL('sandbox.html')
+    sandbox.style.display = 'none'
+    document.body.appendChild(sandbox)
+}
+
 function displayFail(message) {
     frame.info.innerText = 'no recipe found :('
     throw new Error(message)

@@ -1,4 +1,5 @@
 const pos = require('pos');
+const nlp = require('compromise')
 nlp.extend(require('compromise-sentences'))
 
 const UNITS = 'tsp|tsps|teaspoons|teaspoon|tbsp|tb|tbsps|tablespoons|tablespoon|cups|cup|c|lb|lbs|pounds|pound|pd|pds|ounce|ounces|oz|gram|grams|gr|g|kilogram|kilograms|kgs|kg|miligram|miligrams|mg|mgs|ml|mls|mililitre|mililiter|mililitres|mililiters|cl|cls|centiliter|centilitre|centiliter|centilitre|dl|dls|decilitre|deciliter|decilitres|deciliters|l|ls|litres|liters|litre|liter|fl oz|quarts|quart|qt|gallons|gallon|pints|pint|inch|inches|in|cm|cms|centimeter|centimetre|centimeters|centimetres|mm|mms|milimitre|milimiter|milimitres|milimiters|large|small|medium|bunch|handfull|pinch|sprinkle'
@@ -32,40 +33,46 @@ main()
 
 
 function main() {
-    chrome.runtime.onMessage.addListener(request => {  // wait for message from PAGE.js
-        if (request.message !== "innerText") { return }                              
-        
-        chrome.storage.local.get('tokens', async (lib) => { 
-            const ingTokens = await lib.tokens['ing']
-            const methTokens = await lib.tokens['meth']
+    let connection = setInterval(()=> {
+        // keep sending message to page.js asking for data until it is received
+        window.parent.postMessage({message: 'predict.js ready'}, '*') 
+    }, 1000);
+    
+    window.addEventListener('message', async (event) => {  // wait for message from PAGE.js
+        if (event.data.message !== "innerText") { return }    
 
-            const lines = correctLines(request.text);                               
-            
-            const vectors = vectorize2(lines, ingTokens, methTokens);               
+        clearTimeout(connection);
 
-            const ingPrediction = await predict(vectors.ing, ING_MODEL)
-            const methPrediction = await predict(vectors.meth, METH_MODEL);         
+        const ingTokens = event.data.ingTokens
+        const methTokens = event.data.methTokens
 
-            let results = { ing: [], meth: [], all: [], repeated: [], repScores: [] }
-            for (let i = 0; i < lines.length; i++) {   
-                if (ingPrediction[i][1] > ingPrediction[i][0]) { 
-                    results.ing.push(lines[i]);
-                    results.all.push(lines[i])
-                }
-                if (methPrediction[i][1] > methPrediction[i][0]) { 
-                    results.meth.push(lines[i])
-                    if (results.all.includes(lines[i])) { 
-                        results.repeated.push(lines[i]) 
-                        results.repScores.push({ ing: ingPrediction[i][1], meth: methPrediction[i][1] })
-                    } else { 
-                        results.all.push(lines[i]) 
-                    }
+        const lines = correctLines(request.text);                               
+
+        const vectors = vectorize2(lines, ingTokens, methTokens);               
+
+        const ingPrediction = await predict(vectors.ing, ING_MODEL)
+        const methPrediction = await predict(vectors.meth, METH_MODEL);         
+
+        let results = { ing: [], meth: [], all: [], repeated: [], repScores: [] }
+        for (let i = 0; i < lines.length; i++) {   
+            if (ingPrediction[i][1] > ingPrediction[i][0]) { 
+                results.ing.push(lines[i]);
+                results.all.push(lines[i])
+            }
+            if (methPrediction[i][1] > methPrediction[i][0]) { 
+                results.meth.push(lines[i])
+                if (results.all.includes(lines[i])) { 
+                    results.repeated.push(lines[i]) 
+                    results.repScores.push({ ing: ingPrediction[i][1], meth: methPrediction[i][1] })
+                } else { 
+                    results.all.push(lines[i]) 
                 }
             }
-            if (results.all.length === 0) { results = undefined }
+        }
+        if (results.all.length === 0) { results = undefined }
 
-            sendResults(results, request.url);                           
-        }); 
+        /** Send message to PAGE.js with RESULTS */
+        window.parent.postMessage({ message: 'results', results }, event.origin);                                 
     });
 }
 
@@ -352,18 +359,4 @@ async function predict(vectors, modelPath) {
     const exec = await model.executeAsync(input)
 
     return exec.arraySync()
-}
-
-/** Send message to PAGE.js with RESULTS */
-function sendResults(results, url) {
-    chrome.tabs.query({ url }, tabs => {
-        if (tabs[0]) {
-            chrome.tabs.sendMessage(tabs[0].id, { message: "results", results })
-        }
-        else {  // invalid url
-            let validUrl = url.replace(/#.*/, '')
-            if (validUrl === url) { throw new Error (`problem with URL: ${url}\n${tabs}`) }
-            else { sendResults(results, validUrl) }
-        }
-    });
 }

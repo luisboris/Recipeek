@@ -11,21 +11,15 @@ chrome.runtime.onInstalled.addListener( () => {
 });
 
 /** Extension Icon clicked */
-chrome.browserAction.onClicked.addListener( function(){
+chrome.action.onClicked.addListener( ()=> {
 	chrome.tabs.query({ active: true, currentWindow: true }, (tab)=> {
 
 		// send message to page.js (content script)
 		chrome.tabs.sendMessage(tab[0].id, { message: 'you there?' }, ()=> { 
-
+			
 			if (chrome.runtime.lastError) {  // no response means page.js is not yet executed
-				chrome.tabs.executeScript({ file: 'page.js' }, ()=> {
-					
-					if (chrome.runtime.lastError) {  // cannot execute scripts in this page
-						window.alert('No picking in here!') 
-					} else {
-						chrome.tabs.insertCSS(tab[0].id, { file: 'recipick.css' });
-					}
-				});
+				chrome.scripting.executeScript({ target: {tabId: tab[0].id}, files: ['page.js'] });
+				chrome.scripting.insertCSS({ target: {tabId: tab[0].id}, files: ['recipick.css'] });
 			} 
 		});
     });
