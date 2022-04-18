@@ -5,6 +5,7 @@ If you're struggling to find the Recipe in a site or a blog, Recipick does the j
 Using Machine Learning (Tensorflow) and other search algorithms, this app finds a Recipe in a website and its respective Ingredients and Method lists
 
 
+
 ## Folders
 
 ### `/extension`
@@ -28,6 +29,7 @@ Styling an UI div
 
 #### sandbox.html
 To insert as an iframe, so the Tensorflow Model can use `unsafe eval`
+
 
 ### `/python`
 
