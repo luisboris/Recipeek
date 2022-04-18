@@ -815,7 +815,7 @@ function getBranch(elements) {
 
 /** Given an HTML Element, return the deepest Element (furthest away from document.documentElement) with the same innerText */
 function deepestNode(element) {
-    if (element === null) { return }
+    if (!element) return 
 
     let deepest = element
     while (true) {
