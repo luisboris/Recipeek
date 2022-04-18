@@ -1,4 +1,4 @@
-## Recipeek
+# Recipeek
 
 If you're struggling to find the Recipe in a site or a blog, Recipick does the job for you!
 
@@ -8,10 +8,10 @@ Copy, print or save your favorite Recipes.
 
 ## Folders
 
-# Extension
+### `/extension`
 
 sss
 
-# Python
+### `/python`
 
 fff
